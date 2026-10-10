@@ -26,9 +26,9 @@ async function BlocksContent({ searchParams }: { searchParams: Promise<{ returnT
   const blocks = await getOwnBlocks(user.id);
 
   return (
-    <main id="main" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <section className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight">我的占用</h1>
+    <main id="main" className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <section className="min-w-0 space-y-3">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">我的占用</h1>
         <p className="text-sm text-muted">这些安排会挡住你在每个搭子组里的空闲。时间按北京时间。</p>
         {blocks.length === 0 ? <p className="text-sm text-muted">还没有占用。</p> : null}
         <ul className="space-y-2">
@@ -49,7 +49,7 @@ async function BlocksContent({ searchParams }: { searchParams: Promise<{ returnT
           ))}
         </ul>
       </section>
-      <section className={cardClass}>
+      <section className={`${cardClass} min-w-0`}>
         <h2 className="text-lg font-semibold">添加占用</h2>
         <div className="mt-4">
           <BlockForm returnTo={returnTo} defaultDate={currentShanghaiYmd()} />

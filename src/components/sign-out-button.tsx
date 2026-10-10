@@ -13,7 +13,7 @@ export function SignOutButton() {
   return (
     <button
       type="button"
-      className={quietButtonClass}
+      className={`${quietButtonClass} shrink-0 whitespace-nowrap`}
       disabled={pending}
       onClick={() => {
         setPending(true);

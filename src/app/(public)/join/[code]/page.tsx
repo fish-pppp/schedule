@@ -23,7 +23,7 @@ async function JoinContent({ params }: { params: Promise<{ code: string }> }) {
 
   if (!group) {
     return (
-      <main id="main" className="mx-auto max-w-md px-4 py-16">
+      <main id="main" className="mx-auto min-w-0 max-w-md px-4 py-10 sm:py-16">
         <h1 className="text-2xl font-semibold">这个邀请链接失效了</h1>
         <p className="mt-2 text-sm text-muted">请让朋友重新发一个链接。</p>
         <Link href="/" className="mt-6 inline-block text-sm font-medium text-accent">
@@ -37,11 +37,11 @@ async function JoinContent({ params }: { params: Promise<{ code: string }> }) {
   const nextPath = `/join/${code}`;
 
   return (
-    <main id="main" className="mx-auto flex min-h-full max-w-md flex-col px-4 py-16">
+    <main id="main" className="mx-auto flex min-h-full min-w-0 max-w-md flex-col px-4 py-10 sm:py-16">
       <Link href="/" className="text-sm font-semibold">
         搭子日程
       </Link>
-      <h1 className="mt-6 text-3xl font-semibold tracking-tight">加入{group.name}</h1>
+      <h1 className="mt-6 break-words text-2xl font-semibold tracking-tight sm:text-3xl">加入{group.name}</h1>
       <p className="mt-2 text-sm leading-6 text-muted">
         加入后可以看到这个组的行程。你的占用也会让同组的人看到；别的组里约好的事，在这里只会显示成忙碌。
       </p>

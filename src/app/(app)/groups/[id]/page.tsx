@@ -107,7 +107,7 @@ async function GroupContent({
             </Link>
           </div>
         </div>
-        <p className="text-sm text-muted md:hidden">点日期查看这一天。实心是忙碌，虚线是可能忙。</p>
+        <p className="text-sm text-muted md:hidden">点日期查看这一天。</p>
         <p className="hidden text-sm text-muted md:block">点某一天可以约行程。实心是忙碌，虚线是可能忙。</p>
         <WeekBoard
           groupId={id}

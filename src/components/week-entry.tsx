@@ -72,8 +72,8 @@ export function EntryChip({
 function ClockRange({ entry }: { entry: VisibleEntry }) {
   return (
     <>
-      <span className="inline-block">{formatClock(entry.startAt)}</span>
-      <span className="inline-block">–{formatClock(entry.endAt)}</span>
+      <span className="inline-block">{formatClock(entry.startAt)}–</span>
+      <span className="inline-block">{formatClock(entry.endAt)}</span>
     </>
   );
 }

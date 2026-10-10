@@ -10,7 +10,7 @@ export function CopyLink({ path }: { path: string }) {
   return (
     <button
       type="button"
-      className={secondaryButtonClass}
+      className={`${secondaryButtonClass} w-full whitespace-nowrap sm:w-auto`}
       onClick={() => {
         const url = `${window.location.origin}${path}`;
         void navigator.clipboard.writeText(url).then(() => {

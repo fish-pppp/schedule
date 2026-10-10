@@ -49,13 +49,13 @@ async function NewOutingContent({
   const defaultDate = date && isYmd(date) ? date : currentShanghaiYmd();
 
   return (
-    <main id="main" className="mx-auto max-w-lg space-y-4">
+    <main id="main" className="mx-auto min-w-0 max-w-lg space-y-4">
       <p className="text-sm text-muted">
         <Link href={`/groups/${id}`} className="hover:text-ink">
           {access.groupName}
         </Link>
       </p>
-      <h1 className="text-3xl font-semibold tracking-tight">约一个行程</h1>
+      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">约一个行程</h1>
       <div className={cardClass}>
         <OutingForm key={defaultDate} groupId={id} defaultDate={defaultDate} />
       </div>

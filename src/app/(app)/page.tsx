@@ -42,15 +42,15 @@ async function HomeContent() {
   ].sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
 
   return (
-    <main id="main" className="space-y-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">这周和谁有空</h1>
+    <main id="main" className="min-w-0 space-y-8 sm:space-y-10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">这周和谁有空</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
             把朋友分成搭子组。每个人记下自己的占用，在组里约行程。这个组看得到细节，其他组只看得到你这段时间忙碌。
           </p>
         </div>
-        <Link href="/groups/new" className={buttonClass}>
+        <Link href="/groups/new" className={`${buttonClass} w-full shrink-0 sm:w-auto`}>
           新建搭子组
         </Link>
       </div>
@@ -77,7 +77,7 @@ async function HomeContent() {
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">即将到来</h2>
-          <Link href="/blocks" className={secondaryButtonClass}>
+          <Link href="/blocks" className={`${secondaryButtonClass} shrink-0`}>
             添加占用
           </Link>
         </div>

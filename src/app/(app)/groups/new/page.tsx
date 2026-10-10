@@ -19,8 +19,8 @@ async function NewGroupContent() {
   await requireUser();
 
   return (
-    <main id="main" className="mx-auto max-w-lg space-y-4">
-      <h1 className="text-3xl font-semibold tracking-tight">新建搭子组</h1>
+    <main id="main" className="mx-auto min-w-0 max-w-lg space-y-4">
+      <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">新建搭子组</h1>
       <p className="text-sm text-muted">建好后复制邀请链接，发给要一起约的朋友。</p>
       <div className={cardClass}>
         <GroupForm />

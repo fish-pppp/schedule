@@ -50,16 +50,16 @@ export function OutingForm({ groupId, defaultDate }: { groupId: string; defaultD
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="groupId" value={groupId} />
-      <label className="block">
+      <label className="block min-w-0">
         <span className={labelClass}>行程</span>
         <input className={inputClass} name="title" required maxLength={80} placeholder="周六打球" />
       </label>
-      <label className="block">
+      <label className="block min-w-0">
         <span className={labelClass}>地点</span>
         <input className={inputClass} name="place" maxLength={120} placeholder="可选" />
       </label>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+        <label className="block min-w-0">
           <span className={labelClass}>开始日期</span>
           <input
             className={inputClass}
@@ -70,7 +70,7 @@ export function OutingForm({ groupId, defaultDate }: { groupId: string; defaultD
             onChange={(event) => setStartDate(event.target.value)}
           />
         </label>
-        <label className="block">
+        <label className="block min-w-0">
           <span className={labelClass}>开始时间</span>
           <input
             className={inputClass}
@@ -81,7 +81,7 @@ export function OutingForm({ groupId, defaultDate }: { groupId: string; defaultD
             onChange={(event) => setStartTime(event.target.value)}
           />
         </label>
-        <label className="block">
+        <label className="block min-w-0">
           <span className={labelClass}>结束日期</span>
           <input
             className={inputClass}
@@ -92,7 +92,7 @@ export function OutingForm({ groupId, defaultDate }: { groupId: string; defaultD
             onChange={(event) => setEndDate(event.target.value)}
           />
         </label>
-        <label className="block">
+        <label className="block min-w-0">
           <span className={labelClass}>结束时间</span>
           <input
             className={inputClass}

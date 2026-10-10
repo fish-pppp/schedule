@@ -2,20 +2,21 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { CopyLink } from "@/components/copy-link";
+import { GroupWeek, type GroupWeekMember } from "@/components/group-week";
 import { Loading } from "@/components/loading";
 import { OutingList } from "@/components/outing-list";
-import { WeekBoard } from "@/components/week-board";
-import { addDays, formatDay } from "@/lib/time";
+import { memberColor } from "@/lib/colors";
+import { addDays, formatDay, isYmd } from "@/lib/time";
 import { buttonClass, secondaryButtonClass } from "@/lib/ui";
 import { requireUser } from "@/server/guard";
-import { getGroupPage } from "@/server/queries";
+import { getGroupPage, type GroupPageMember } from "@/server/queries";
 
 export default function GroupPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ week?: string; day?: string }>;
 }) {
   return (
     <Suspense fallback={<Loading />}>
@@ -29,12 +30,14 @@ async function GroupContent({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ week?: string; day?: string }>;
 }) {
   const user = await requireUser();
   const { id } = await params;
-  const { week } = await searchParams;
-  const data = await getGroupPage(user.id, id, week);
+  const { week, day } = await searchParams;
+  const weekValue = week && isYmd(week) ? week : undefined;
+  const dayValue = day && isYmd(day) ? day : undefined;
+  const data = await getGroupPage(user.id, id, weekValue ?? dayValue);
 
   if (!data) {
     return (
@@ -98,13 +101,15 @@ async function GroupContent({
             </Link>
           </div>
         </div>
-        <p className="text-sm text-muted sm:hidden">左右滑动查看整周。点某一天可以约行程。</p>
-        <p className="hidden text-sm text-muted sm:block">点某一天可以约行程。实心是忙碌，虚线是可能忙。</p>
-        <WeekBoard
+        <p className="text-sm text-muted">
+          点某一天看这一天的时间图。每个人一种颜色，同一时间叠在同一行里。斜线是可能忙。
+        </p>
+        <p className="text-sm text-muted sm:hidden">左右滑动查看整周。</p>
+        <GroupWeek
           groupId={id}
           color={data.group.color}
           days={data.days}
-          members={data.members}
+          members={coloredMembers(data.members)}
           viewerId={data.viewerId}
         />
       </section>
@@ -117,4 +122,17 @@ async function GroupContent({
       />
     </main>
   );
+}
+
+function coloredMembers(members: GroupPageMember[]): GroupWeekMember[] {
+  return members.map((member, index) => ({
+    userId: member.userId,
+    name: member.name,
+    color: memberColor(index),
+    entries: member.entries.map((entry) => ({
+      ...entry,
+      startAt: entry.startAt.toISOString(),
+      endAt: entry.endAt.toISOString(),
+    })),
+  }));
 }

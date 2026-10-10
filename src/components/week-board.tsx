@@ -1,4 +1,4 @@
-import Link from "next/link";
+"use client";
 
 import { deleteBlock } from "@/server/block-actions";
 import { dayBounds, formatClock, formatDay, shanghaiYmd } from "@/lib/time";
@@ -10,12 +10,18 @@ export function WeekBoard({
   days,
   members,
   viewerId,
+  selectedDay,
+  dayHref,
+  onSelectDay,
 }: {
   groupId: string;
   color: string;
   days: string[];
   viewerId: string;
-  members: { userId: string; name: string; entries: VisibleEntry[] }[];
+  members: { userId: string; name: string; color: string; entries: readonly VisibleEntry[] }[];
+  selectedDay?: string;
+  dayHref: (day: string) => string;
+  onSelectDay: (day: string) => void;
 }) {
   return (
     <div className="week-scroll rounded-2xl border border-line">
@@ -24,29 +30,53 @@ export function WeekBoard({
         <thead>
           <tr>
             <th scope="col">成员</th>
-            {days.map((day) => (
-              <th key={day} scope="col">
-                <Link href={`/groups/${groupId}/outings/new?date=${day}`} title={`约 ${formatDay(day)}`}>
-                  {formatDay(day)}
-                </Link>
-              </th>
-            ))}
+            {days.map((day) => {
+              const selected = day === selectedDay;
+              return (
+                <th key={day} scope="col" className={selected ? "is-selected" : undefined}>
+                  <a
+                    id={`week-day-${day}`}
+                    href={dayHref(day)}
+                    title={`查看${formatDay(day)}`}
+                    aria-current={selected ? "date" : undefined}
+                    className={selected ? "font-semibold text-accent" : "hover:text-accent"}
+                    onClick={(event) => {
+                      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                      event.preventDefault();
+                      onSelectDay(day);
+                    }}
+                  >
+                    {formatDay(day)}
+                  </a>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
           {members.map((member) => (
             <tr key={member.userId}>
               <th scope="row">
-                {member.name}
-                {member.userId === viewerId ? <span className="mt-1 block text-xs font-normal text-muted">我</span> : null}
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="inline-block size-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: member.color }}
+                    aria-hidden="true"
+                  />
+                  {member.name}
+                </span>
+                {member.userId === viewerId ? (
+                  <span className="mt-1 block pl-4 text-xs font-normal text-muted">我</span>
+                ) : null}
               </th>
               {days.map((day) => {
                 const bounds = dayBounds(day);
                 const entries = member.entries.filter((entry) =>
                   overlaps(entry.startAt, entry.endAt, bounds.start, bounds.end),
                 );
+                const selected = day === selectedDay;
                 return (
-                  <td key={day}>
+                  <td key={day} className={selected ? "is-selected" : undefined}>
                     {entries.length === 0 ? <span className="text-xs text-muted">空闲</span> : null}
                     <div className="flex flex-col gap-1">
                       {entries.map((entry) => (

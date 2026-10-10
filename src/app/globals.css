@@ -61,3 +61,68 @@ body {
   left: 0;
   z-index: 2;
 }
+
+.week-table th.is-selected,
+.week-table td.is-selected {
+  background: #f6ebe3;
+}
+
+.day-scroll {
+  overflow-x: auto;
+}
+
+.day-track {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+  background-color: #f7f1e6;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(100% / 8 - 1px),
+    var(--color-line) calc(100% / 8 - 1px),
+    var(--color-line) calc(100% / 8)
+  );
+}
+
+.day-band {
+  position: absolute;
+  display: flex;
+  height: 26px;
+  min-width: 3px;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 0.25rem;
+  color: #fffdf8;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.day-band span {
+  overflow: hidden;
+  padding: 0 0.35rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-band.is-maybe {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(255, 253, 248, 0.38) 4px,
+    rgba(255, 253, 248, 0.38) 7px
+  );
+}
+
+.day-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}

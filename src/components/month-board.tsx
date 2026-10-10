@@ -154,7 +154,7 @@ export function MonthBoard({
       <dialog
         ref={dialogRef}
         aria-labelledby={titleId}
-        className="slot-dialog w-[min(26rem,calc(100vw-2rem))] rounded-[28px] bg-paper p-0 text-ink backdrop:bg-black/35"
+        className="slot-dialog rounded-[28px] bg-paper p-0 text-ink backdrop:bg-black/35"
         onClose={() => setSlot(null)}
         onClick={(event) => {
           if (event.target === dialogRef.current) setSlot(null);

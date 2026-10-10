@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { CopyLink } from "@/components/copy-link";
+import type { CalendarEntry } from "@/components/day-screen";
+import { GroupInfo } from "@/components/group-info";
 import { Loading } from "@/components/loading";
-import { MonthBoard, type CalendarEntry } from "@/components/month-board";
+import { MonthBoard } from "@/components/month-board";
 import { OutingList } from "@/components/outing-list";
+import { memberColor } from "@/lib/colors";
 import { addMonths, currentShanghaiYmd, formatMonthTitle } from "@/lib/time";
-import { secondaryButtonClass } from "@/lib/ui";
 import { requireUser } from "@/server/guard";
 import { getGroupPage } from "@/server/queries";
 import type { VisibleEntry } from "@/lib/visibility";
@@ -49,31 +50,22 @@ async function GroupContent({
     );
   }
 
-  const members = data.members.map((member) => ({
+  const members = data.members.map((member, index) => ({
     userId: member.userId,
     name: member.name,
+    color: memberColor(index),
     entries: member.entries.map(toCalendarEntry),
   }));
 
   return (
     <main id="main" className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[13px] font-medium text-muted">搭子组</p>
-          <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{data.group.name}</h1>
-          <p className="mt-1 text-sm text-muted">{data.members.map((member) => member.name).join("、")}</p>
-        </div>
-        <Link href={`/blocks?returnTo=${encodeURIComponent(`/groups/${id}?month=${data.month}`)}`} className={secondaryButtonClass}>
-          添加占用
-        </Link>
-      </div>
-
-      <section className="flex flex-wrap items-center gap-3 text-sm text-muted">
-        <span>
-          邀请码 <span className="font-medium text-ink">{data.group.inviteCode}</span>
-        </span>
-        <CopyLink path={`/join/${data.group.inviteCode}`} />
-      </section>
+      <GroupInfo
+        name={data.group.name}
+        color={data.group.color}
+        inviteCode={data.group.inviteCode}
+        members={members}
+        blocksHref={`/blocks?returnTo=${encodeURIComponent(`/groups/${id}?month=${data.month}`)}`}
+      />
 
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-[28px] font-semibold tracking-tight">{formatMonthTitle(data.month)}</h2>
@@ -92,7 +84,6 @@ async function GroupContent({
 
       <MonthBoard
         groupId={id}
-        color={data.group.color}
         month={data.month}
         today={currentShanghaiYmd()}
         days={data.days}

@@ -2,7 +2,18 @@
 
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 
-import { addDays, addMonths, dayBounds, formatMonthTitle, formatOccupied, isAllDay, monthKeyOf, shanghaiWeekdayIndex } from "@/lib/time";
+import {
+  addDays,
+  addMonths,
+  dayBounds,
+  formatClock,
+  formatDay,
+  formatMonthTitle,
+  formatOccupied,
+  isAllDay,
+  monthKeyOf,
+  shanghaiWeekdayIndex,
+} from "@/lib/time";
 import { ParticipantPicker } from "@/components/participant-picker";
 import { buttonClass, inputClass, labelClass } from "@/lib/ui";
 import { overlaps, type VisibleEntry } from "@/lib/visibility";
@@ -41,16 +52,17 @@ export function MonthBoard({
   viewerId: string;
   members: { userId: string; name: string; entries: CalendarEntry[] }[];
 }) {
-  const [day, setDay] = useState<string | null>(null);
+  const [openDay, setOpenDay] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (day && !dialog.open) dialog.showModal();
-    if (!day && dialog.open) dialog.close();
-  }, [day]);
+    if (creating && !dialog.open) dialog.showModal();
+    if (!creating && dialog.open) dialog.close();
+  }, [creating]);
 
   return (
     <div className="space-y-4">
@@ -111,30 +123,44 @@ export function MonthBoard({
               members={members}
               color={color}
               groupId={groupId}
-              onOpen={setDay}
+              selected={openDay === cell}
+              onOpen={(next) => {
+                setCreating(false);
+                setOpenDay((current) => (current === next ? null : next));
+              }}
             />
           ))}
         </div>
+        {openDay ? (
+          <DayAgenda
+            day={openDay}
+            members={members}
+            viewerId={viewerId}
+            color={color}
+            groupId={groupId}
+            onCreate={() => setCreating(true)}
+          />
+        ) : null}
       </section>
 
       <dialog
         ref={dialogRef}
         aria-labelledby={titleId}
         className="slot-dialog rounded-[28px] bg-paper p-0 text-ink backdrop:bg-black/35"
-        onClose={() => setDay(null)}
+        onClose={() => setCreating(false)}
         onClick={(event) => {
-          if (event.target === dialogRef.current) setDay(null);
+          if (event.target === dialogRef.current) setCreating(false);
         }}
       >
-        {day ? (
+        {creating && openDay ? (
           <SlotForm
-            key={day}
+            key={openDay}
             titleId={titleId}
             groupId={groupId}
-            day={day}
+            day={openDay}
             viewerId={viewerId}
             members={members.map((member) => ({ userId: member.userId, name: member.name }))}
-            onClose={() => setDay(null)}
+            onClose={() => setCreating(false)}
           />
         ) : null}
       </dialog>
@@ -149,6 +175,7 @@ function DayCell({
   members,
   color,
   groupId,
+  selected,
   onOpen,
 }: {
   day: string;
@@ -157,6 +184,7 @@ function DayCell({
   members: { userId: string; name: string; entries: CalendarEntry[] }[];
   color: string;
   groupId: string;
+  selected: boolean;
   onOpen: (day: string) => void;
 }) {
   const inMonth = monthKeyOf(day) === month;
@@ -174,9 +202,12 @@ function DayCell({
   return (
     <button
       type="button"
-      className={`flex min-h-24 flex-col border-b border-r border-line p-1 text-left hover:bg-[#f2f2f7] ${inMonth ? "" : "bg-[#f6f6f8]"}`}
+      className={`flex min-h-24 flex-col border-b border-r border-line p-1 text-left hover:bg-[#f2f2f7] ${
+        selected ? "bg-[#e8f1ff]" : inMonth ? "" : "bg-[#f6f6f8]"
+      }`}
       onClick={() => onOpen(day)}
-      aria-label={`${Number(day.slice(5, 7))}月${dayNumber}日，新建行程`}
+      aria-pressed={selected}
+      aria-label={`${Number(day.slice(5, 7))}月${dayNumber}日，展开这一天`}
     >
       <span className="mb-1 text-center">
         <span
@@ -199,6 +230,83 @@ function DayCell({
       {hits.length > shown.length ? <span className="text-[10px] text-muted">+{hits.length - shown.length}</span> : null}
     </button>
   );
+}
+
+function DayAgenda({
+  day,
+  members,
+  viewerId,
+  color,
+  groupId,
+  onCreate,
+}: {
+  day: string;
+  members: { userId: string; name: string; entries: CalendarEntry[] }[];
+  viewerId: string;
+  color: string;
+  groupId: string;
+  onCreate: () => void;
+}) {
+  const ordered = [...members].sort((a, b) => Number(b.userId === viewerId) - Number(a.userId === viewerId));
+  return (
+    <section className="border-t border-line px-4 py-4" aria-label={formatDay(day)}>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-[20px] font-semibold tracking-tight">{formatDay(day)}</h3>
+        <button type="button" className={buttonClass} onClick={onCreate}>
+          约这一天
+        </button>
+      </div>
+      <ul className="mt-3 divide-y divide-line">
+        {ordered.map((member) => {
+          const items = entriesOnDay(member.entries, day);
+          return (
+            <li key={member.userId} className="flex gap-3 py-3">
+              <span
+                className="grid size-8 shrink-0 place-items-center rounded-full text-sm font-medium text-white"
+                style={{ backgroundColor: member.userId === viewerId ? "#007aff" : color }}
+              >
+                {member.name.slice(0, 1)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">
+                  {member.name}
+                  {member.userId === viewerId ? <span className="ml-1 text-xs font-normal text-muted">我</span> : null}
+                </p>
+                {items.length === 0 ? <p className="mt-1 text-sm text-muted">这一天没有安排</p> : null}
+                <ul className="mt-1 space-y-1">
+                  {items.map((entry) => (
+                    <li key={`${entry.source}-${entry.id}`} className="text-sm">
+                      <span
+                        className="mr-2 inline-block size-2 rounded-full align-middle"
+                        style={{ backgroundColor: chipColor(entry, groupId, color) }}
+                      />
+                      <span className="tabular-nums text-muted">{whenLabel(entry)}</span>
+                      <span className="ml-2">{entryLabel(entry)}</span>
+                      {entry.level === "detail" && entry.place ? <span className="text-muted"> · {entry.place}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function entriesOnDay(entries: CalendarEntry[], day: string): CalendarEntry[] {
+  const bounds = dayBounds(day);
+  return entries
+    .filter((entry) => overlaps(new Date(entry.startAt), new Date(entry.endAt), bounds.start, bounds.end))
+    .sort((a, b) => a.startAt.localeCompare(b.startAt));
+}
+
+function whenLabel(entry: CalendarEntry): string {
+  const start = new Date(entry.startAt);
+  const end = new Date(entry.endAt);
+  if (isAllDay(start, end)) return "全天";
+  return `${formatClock(start)}–${formatClock(end)}`;
 }
 
 function SlotForm({

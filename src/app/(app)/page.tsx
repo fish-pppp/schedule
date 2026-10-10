@@ -45,7 +45,7 @@ async function HomeContent() {
     <main id="main" className="space-y-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">这周和谁有空</h1>
+          <h1 className="text-[34px] font-semibold leading-tight tracking-tight">这个月和谁有空</h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
             把朋友分成搭子组。每个人记下自己的占用，在组里约行程。这个组看得到细节，其他组只看得到你这段时间忙碌。
           </p>

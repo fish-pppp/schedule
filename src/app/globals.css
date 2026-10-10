@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-noto), "Noto Sans SC", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
-  --color-paper: #f4efe6;
-  --color-ink: #1c1916;
-  --color-card: #fffdf8;
-  --color-line: #e3dacb;
-  --color-muted: #6d645c;
-  --color-accent: #c6533a;
-  --color-maybe: #a56b12;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", var(--font-noto), "Noto Sans SC", sans-serif;
+  --color-paper: #f2f2f7;
+  --color-ink: #1c1c1e;
+  --color-card: #ffffff;
+  --color-line: #e5e5ea;
+  --color-muted: #8e8e93;
+  --color-accent: #007aff;
+  --color-maybe: #ff9500;
 }
 
 body {
@@ -22,42 +22,11 @@ body {
   outline-offset: 2px;
 }
 
-.week-scroll {
-  overflow-x: auto;
+.slot-dialog {
+  border: 0;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
 }
 
-.week-table {
-  width: 100%;
-  min-width: 760px;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.week-table th,
-.week-table td {
-  border-bottom: 1px solid var(--color-line);
-  border-right: 1px solid var(--color-line);
-  background: var(--color-card);
-  padding: 0.5rem;
-  vertical-align: top;
-}
-
-.week-table thead th {
-  font-weight: 500;
-  text-align: left;
-}
-
-.week-table tbody th {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  min-width: 6.5rem;
-  text-align: left;
-  font-weight: 500;
-}
-
-.week-table thead th:first-child {
-  position: sticky;
-  left: 0;
-  z-index: 2;
+.slot-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.32);
 }

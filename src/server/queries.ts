@@ -12,7 +12,7 @@ import {
   type RsvpStatus,
   type VisibleEntry,
 } from "@/lib/visibility";
-import { currentShanghaiYmd, dayBounds, isYmd, mondayOf, weekDays } from "@/lib/time";
+import { currentShanghaiYmd, dayBounds, isMonthKey, monthGrid, monthKeyOf } from "@/lib/time";
 
 export async function getHome(userId: string) {
   const now = new Date();
@@ -95,7 +95,7 @@ export type GroupPageOuting = {
   responses: { userId: string; name: string; status: string }[];
 };
 
-export async function getGroupPage(userId: string, groupId: string, weekParam: string | undefined) {
+export async function getGroupPage(userId: string, groupId: string, monthParam: string | undefined) {
   const access = await db
     .select({
       role: membership.role,
@@ -113,10 +113,10 @@ export async function getGroupPage(userId: string, groupId: string, weekParam: s
   if (!group) return null;
 
   const today = currentShanghaiYmd();
-  const monday = weekParam && isYmd(weekParam) ? mondayOf(weekParam) : mondayOf(today);
-  const days = weekDays(monday);
-  const rangeStart = dayBounds(days[0] ?? monday).start;
-  const rangeEnd = dayBounds(days[6] ?? monday).end;
+  const month = monthParam && isMonthKey(monthParam) ? monthParam : monthKeyOf(today);
+  const days = monthGrid(month);
+  const rangeStart = dayBounds(days[0] ?? `${month}-01`).start;
+  const rangeEnd = dayBounds(days.at(-1) ?? `${month}-01`).end;
   const now = new Date();
 
   const members = await db
@@ -132,7 +132,7 @@ export async function getGroupPage(userId: string, groupId: string, weekParam: s
 
   const memberIds = members.map((member) => member.userId);
   if (memberIds.length === 0) {
-    return { group, monday, days, members: [], outings: [], viewerId: userId };
+    return { group, month, days, members: [], outings: [], viewerId: userId };
   }
 
   const [blocks, occupied, upcoming] = await Promise.all([
@@ -257,7 +257,7 @@ export async function getGroupPage(userId: string, groupId: string, weekParam: s
 
   return {
     group,
-    monday,
+    month,
     days,
     members: memberRows,
     outings: outingCards,

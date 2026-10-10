@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { outing, rsvp } from "@/db/schema";
 import { createId } from "@/lib/ids";
 import { isTextError, optionalText, requiredText } from "@/lib/text";
-import { parseRange } from "@/lib/time";
+import { isMonthKey, parseRange } from "@/lib/time";
 import { requireGroupMember, requireUser } from "@/server/guard";
 import { previewAvailability } from "@/server/queries";
 import { refreshSchedule } from "@/server/refresh";
@@ -78,7 +78,8 @@ export async function createOuting(_prev: ActionState, formData: FormData): Prom
   });
 
   refreshSchedule();
-  redirect(`/groups/${groupId}`);
+  const month = String(formData.get("month") ?? "");
+  redirect(isMonthKey(month) ? `/groups/${groupId}?month=${month}` : `/groups/${groupId}`);
 }
 
 export async function setRsvp(formData: FormData) {

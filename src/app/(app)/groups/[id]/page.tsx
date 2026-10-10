@@ -3,19 +3,20 @@ import { Suspense } from "react";
 
 import { CopyLink } from "@/components/copy-link";
 import { Loading } from "@/components/loading";
+import { MonthBoard, type CalendarEntry } from "@/components/month-board";
 import { OutingList } from "@/components/outing-list";
-import { WeekBoard } from "@/components/week-board";
-import { addDays, formatDay } from "@/lib/time";
-import { buttonClass, secondaryButtonClass } from "@/lib/ui";
+import { addMonths, currentShanghaiYmd, formatMonthTitle } from "@/lib/time";
+import { secondaryButtonClass } from "@/lib/ui";
 import { requireUser } from "@/server/guard";
 import { getGroupPage } from "@/server/queries";
+import type { VisibleEntry } from "@/lib/visibility";
 
 export default function GroupPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ month?: string }>;
 }) {
   return (
     <Suspense fallback={<Loading />}>
@@ -29,12 +30,12 @@ async function GroupContent({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ month?: string }>;
 }) {
   const user = await requireUser();
   const { id } = await params;
-  const { week } = await searchParams;
-  const data = await getGroupPage(user.id, id, week);
+  const { month } = await searchParams;
+  const data = await getGroupPage(user.id, id, month);
 
   if (!data) {
     return (
@@ -48,66 +49,56 @@ async function GroupContent({
     );
   }
 
-  const firstDay = data.days[0] ?? data.monday;
-  const lastDay = data.days[6] ?? data.monday;
+  const members = data.members.map((member) => ({
+    userId: member.userId,
+    name: member.name,
+    entries: member.entries.map(toCalendarEntry),
+  }));
 
   return (
-    <main id="main" className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <main id="main" className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-sm text-muted">
-            <span className="inline-block size-3 rounded-full" style={{ backgroundColor: data.group.color }} />
-            搭子组
-          </p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">{data.group.name}</h1>
-          <p className="mt-2 text-sm text-muted">
-            {data.members.map((member) => member.name).join("、")}
-          </p>
+          <p className="text-[13px] font-medium text-muted">搭子组</p>
+          <h1 className="text-[34px] font-semibold leading-tight tracking-tight">{data.group.name}</h1>
+          <p className="mt-1 text-sm text-muted">{data.members.map((member) => member.name).join("、")}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/groups/${id}/outings/new`} className={buttonClass}>
-            约行程
+        <Link href={`/blocks?returnTo=${encodeURIComponent(`/groups/${id}?month=${data.month}`)}`} className={secondaryButtonClass}>
+          添加占用
+        </Link>
+      </div>
+
+      <section className="flex flex-wrap items-center gap-3 text-sm text-muted">
+        <span>
+          邀请码 <span className="font-medium text-ink">{data.group.inviteCode}</span>
+        </span>
+        <CopyLink path={`/join/${data.group.inviteCode}`} />
+      </section>
+
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-[28px] font-semibold tracking-tight">{formatMonthTitle(data.month)}</h2>
+        <div className="flex items-center rounded-full bg-card p-1 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+          <Link className="grid size-8 place-items-center rounded-full text-lg text-accent" href={`/groups/${id}?month=${addMonths(data.month, -1)}`} aria-label="上个月">
+            ‹
           </Link>
-          <Link href={`/blocks?returnTo=${encodeURIComponent(`/groups/${id}`)}`} className={secondaryButtonClass}>
-            添加占用
+          <Link className="px-2 text-sm font-medium text-accent" href={`/groups/${id}`}>
+            今天
+          </Link>
+          <Link className="grid size-8 place-items-center rounded-full text-lg text-accent" href={`/groups/${id}?month=${addMonths(data.month, 1)}`} aria-label="下个月">
+            ›
           </Link>
         </div>
       </div>
 
-      <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3">
-        <p className="text-sm">
-          邀请码 <span className="font-medium">{data.group.inviteCode}</span>
-        </p>
-        <CopyLink path={`/join/${data.group.inviteCode}`} />
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">
-            {formatDay(firstDay)} – {formatDay(lastDay)}
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            <Link className={secondaryButtonClass} href={`/groups/${id}?week=${addDays(data.monday, -7)}`}>
-              上一周
-            </Link>
-            <Link className={secondaryButtonClass} href={`/groups/${id}`}>
-              本周
-            </Link>
-            <Link className={secondaryButtonClass} href={`/groups/${id}?week=${addDays(data.monday, 7)}`}>
-              下一周
-            </Link>
-          </div>
-        </div>
-        <p className="text-sm text-muted sm:hidden">左右滑动查看整周。点某一天可以约行程。</p>
-        <p className="hidden text-sm text-muted sm:block">点某一天可以约行程。实心是忙碌，虚线是可能忙。</p>
-        <WeekBoard
-          groupId={id}
-          color={data.group.color}
-          days={data.days}
-          members={data.members}
-          viewerId={data.viewerId}
-        />
-      </section>
+      <MonthBoard
+        groupId={id}
+        color={data.group.color}
+        month={data.month}
+        today={currentShanghaiYmd()}
+        days={data.days}
+        members={members}
+        viewerId={data.viewerId}
+      />
 
       <OutingList
         outings={data.outings}
@@ -117,4 +108,19 @@ async function GroupContent({
       />
     </main>
   );
+}
+
+function toCalendarEntry(entry: VisibleEntry): CalendarEntry {
+  return {
+    id: entry.id,
+    source: entry.source,
+    level: entry.level,
+    title: entry.title,
+    place: entry.place,
+    startAt: entry.startAt.toISOString(),
+    endAt: entry.endAt.toISOString(),
+    userId: entry.userId,
+    groupId: entry.groupId ?? undefined,
+    status: entry.status ?? undefined,
+  };
 }

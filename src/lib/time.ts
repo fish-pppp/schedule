@@ -47,6 +47,68 @@ export function weekDays(monday: string): string[] {
   return Array.from({ length: 7 }, (_, index) => addDays(monday, index));
 }
 
+export function isMonthKey(value: string): boolean {
+  return /^\d{4}-\d{2}$/.test(value) && isYmd(`${value}-01`);
+}
+
+export function monthKeyOf(ymd: string): string {
+  return ymd.slice(0, 7);
+}
+
+export function addMonths(month: string, delta: number): string {
+  const year = Number(month.slice(0, 4));
+  const monthIndex = Number(month.slice(5, 7)) - 1;
+  const shifted = new Date(Date.UTC(year, monthIndex + delta, 1));
+  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+export function monthGrid(month: string): string[] {
+  const start = `${month}-01`;
+  const weekday = shanghaiWeekdayIndex(new Date(`${start}T12:00:00+08:00`));
+  const leading = weekday === 0 ? 6 : weekday - 1;
+  const next = `${addMonths(month, 1)}-01`;
+  const daysInMonth = Math.round(
+    (Date.parse(`${next}T00:00:00+08:00`) - Date.parse(`${start}T00:00:00+08:00`)) / 86_400_000,
+  );
+  const cells = Math.ceil((leading + daysInMonth) / 7) * 7;
+  const gridStart = addDays(start, -leading);
+  return Array.from({ length: cells }, (_, index) => addDays(gridStart, index));
+}
+
+export function formatMonthTitle(month: string): string {
+  return `${Number(month.slice(0, 4))}年${Number(month.slice(5, 7))}月`;
+}
+
+export type DayHalf = "morning" | "afternoon";
+
+export function halfClock(half: DayHalf): { start: string; end: string } {
+  return half === "morning" ? { start: "09:00", end: "12:00" } : { start: "13:00", end: "18:00" };
+}
+
+export function halfBounds(ymd: string, half: DayHalf): { start: Date; end: Date } {
+  const clock = halfClock(half);
+  return {
+    start: new Date(`${ymd}T${clock.start}:00+08:00`),
+    end: new Date(`${ymd}T${clock.end}:00+08:00`),
+  };
+}
+
+export function formatOccupied(start: Date, end: Date): string {
+  const startDay = shanghaiYmd(start);
+  const endDay = shanghaiYmd(end);
+  const dayNumber = (ymd: string) => `${Number(ymd.slice(8, 10))}日`;
+  if (startDay === endDay) {
+    const startClock = formatClock(start);
+    const endClock = formatClock(end);
+    if (startClock === "09:00" && endClock === "12:00") return `${dayNumber(startDay)} 上午`;
+    if (startClock === "13:00" && endClock === "18:00") return `${dayNumber(startDay)} 下午`;
+    return `${dayNumber(startDay)} ${startClock}–${endClock}`;
+  }
+  const endIsMidnight = formatClock(end) === "00:00" && endDay === addDays(startDay, 1);
+  if (endIsMidnight) return dayNumber(startDay);
+  return `${dayNumber(startDay)}–${dayNumber(endDay)}`;
+}
+
 export function dayBounds(ymd: string): { start: Date; end: Date } {
   return {
     start: new Date(`${ymd}T00:00:00+08:00`),

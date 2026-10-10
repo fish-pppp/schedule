@@ -20,7 +20,7 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <SiteHeader name={session.user.name} />
-      <div className="mx-auto w-full max-w-5xl px-4 py-6">{children}</div>
+      <div className="mx-auto w-full max-w-6xl px-4 py-6">{children}</div>
     </>
   );
 }

@@ -61,53 +61,51 @@ body {
   background: var(--color-paper);
 }
 
-.day-scroll {
-  overflow-x: auto;
-}
-
-.day-row {
-  position: relative;
-  height: 2rem;
+.day-timetable {
   overflow: hidden;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   background-color: #f2f2f7;
   background-image: repeating-linear-gradient(
-    to right,
+    to bottom,
     transparent 0,
-    transparent calc(100% / 8 - 1px),
-    var(--color-line) calc(100% / 8 - 1px),
-    var(--color-line) calc(100% / 8)
+    transparent calc(var(--hour) - 1px),
+    var(--color-line) calc(var(--hour) - 1px),
+    var(--color-line) var(--hour)
   );
 }
 
-.day-span {
-  position: absolute;
-  top: 2px;
+.day-share {
   display: flex;
-  height: calc(100% - 4px);
-  min-width: 3px;
-  align-items: center;
+  width: 0;
+  min-width: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: flex-start;
   overflow: hidden;
-  border-radius: 0.35rem;
+  border-radius: 0.5rem;
   color: #fff;
   font-size: 0.75rem;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
-.day-span span {
+.day-share p {
   overflow: hidden;
-  padding: 0 0.35rem;
+  padding: 0 0.45rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.day-span.is-maybe {
+.day-share p:first-child {
+  padding-top: 0.3rem;
+}
+
+.day-share.is-maybe {
   background-image: repeating-linear-gradient(
     -45deg,
     transparent,
     transparent 4px,
-    rgba(255, 255, 255, 0.4) 4px,
-    rgba(255, 255, 255, 0.4) 7px
+    rgba(255, 255, 255, 0.38) 4px,
+    rgba(255, 255, 255, 0.38) 7px
   );
 }

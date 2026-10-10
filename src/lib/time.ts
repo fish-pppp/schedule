@@ -79,34 +79,18 @@ export function formatMonthTitle(month: string): string {
   return `${Number(month.slice(0, 4))}年${Number(month.slice(5, 7))}月`;
 }
 
-export type DayHalf = "morning" | "afternoon";
-
-export function halfClock(half: DayHalf): { start: string; end: string } {
-  return half === "morning" ? { start: "09:00", end: "12:00" } : { start: "13:00", end: "18:00" };
-}
-
-export function halfBounds(ymd: string, half: DayHalf): { start: Date; end: Date } {
-  const clock = halfClock(half);
-  return {
-    start: new Date(`${ymd}T${clock.start}:00+08:00`),
-    end: new Date(`${ymd}T${clock.end}:00+08:00`),
-  };
+export function isAllDay(start: Date, end: Date): boolean {
+  const startDay = shanghaiYmd(start);
+  return formatClock(start) === "00:00" && formatClock(end) === "00:00" && shanghaiYmd(end) === addDays(startDay, 1);
 }
 
 export function formatOccupied(start: Date, end: Date): string {
   const startDay = shanghaiYmd(start);
   const endDay = shanghaiYmd(end);
   const dayNumber = (ymd: string) => `${Number(ymd.slice(8, 10))}日`;
-  if (startDay === endDay) {
-    const startClock = formatClock(start);
-    const endClock = formatClock(end);
-    if (startClock === "09:00" && endClock === "12:00") return `${dayNumber(startDay)} 上午`;
-    if (startClock === "13:00" && endClock === "18:00") return `${dayNumber(startDay)} 下午`;
-    return `${dayNumber(startDay)} ${startClock}–${endClock}`;
-  }
-  const endIsMidnight = formatClock(end) === "00:00" && endDay === addDays(startDay, 1);
-  if (endIsMidnight) return dayNumber(startDay);
-  return `${dayNumber(startDay)}–${dayNumber(endDay)}`;
+  if (isAllDay(start, end)) return `${dayNumber(startDay)} 全天`;
+  if (startDay === endDay) return `${dayNumber(startDay)} ${formatClock(start)}–${formatClock(end)}`;
+  return `${dayNumber(startDay)} ${formatClock(start)}–${dayNumber(endDay)} ${formatClock(end)}`;
 }
 
 export function dayBounds(ymd: string): { start: Date; end: Date } {
@@ -139,6 +123,7 @@ export function formatClock(date: Date): string {
 export function formatRange(start: Date, end: Date): string {
   const startDay = shanghaiYmd(start);
   const endDay = shanghaiYmd(end);
+  if (isAllDay(start, end)) return `${formatDay(startDay)} 全天`;
   if (startDay === endDay) {
     return `${formatDay(startDay)} ${formatClock(start)}–${formatClock(end)}`;
   }

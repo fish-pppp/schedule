@@ -2,16 +2,7 @@
 
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 
-import {
-  addMonths,
-  formatMonthTitle,
-  formatOccupied,
-  halfBounds,
-  halfClock,
-  monthKeyOf,
-  shanghaiWeekdayIndex,
-  type DayHalf,
-} from "@/lib/time";
+import { addDays, addMonths, dayBounds, formatMonthTitle, formatOccupied, isAllDay, monthKeyOf, shanghaiWeekdayIndex } from "@/lib/time";
 import { buttonClass, inputClass, labelClass } from "@/lib/ui";
 import { overlaps, type VisibleEntry } from "@/lib/visibility";
 import { checkAvailability, createOuting, type ActionState, type AvailabilityPreview } from "@/server/outing-actions";
@@ -50,16 +41,16 @@ export function MonthBoard({
   viewerId: string;
   members: { userId: string; name: string; entries: CalendarEntry[] }[];
 }) {
-  const [slot, setSlot] = useState<{ day: string; half: DayHalf } | null>(null);
+  const [day, setDay] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (slot && !dialog.open) dialog.showModal();
-    if (!slot && dialog.open) dialog.close();
-  }, [slot]);
+    if (day && !dialog.open) dialog.showModal();
+    if (!day && dialog.open) dialog.close();
+  }, [day]);
 
   return (
     <div className="space-y-4">
@@ -87,7 +78,7 @@ export function MonthBoard({
                 ) : (
                   <ul className="mt-2 space-y-1">
                     {occupied.slice(0, 4).map((entry) => (
-                      <li key={`${entry.source}-${entry.id}`} className="truncate text-[13px] text-ink">
+                      <li key={`${entry.source}-${entry.id}-${member.userId}`} className="truncate text-[13px] text-ink">
                         <span className={entry.level === "maybe" ? "text-maybe" : ""}>
                           {formatOccupied(new Date(entry.startAt), new Date(entry.endAt))}
                         </span>
@@ -111,43 +102,18 @@ export function MonthBoard({
           ))}
         </div>
         <div className="grid grid-cols-7">
-          {days.map((day) => {
-            const inMonth = monthKeyOf(day) === month;
-            const isToday = day === today;
-            const dayNumber = Number(day.slice(8, 10));
-            const sunday = shanghaiWeekdayIndex(new Date(`${day}T12:00:00+08:00`)) === 0;
-            return (
-              <div key={day} className={`min-h-24 border-b border-r border-line p-1 ${inMonth ? "" : "bg-[#f6f6f8]"}`}>
-                <p className="mb-1 text-center">
-                  <span
-                    className={`inline-grid size-6 place-items-center rounded-full text-[13px] font-medium ${
-                      isToday ? "bg-accent text-white" : inMonth ? (sunday ? "text-[#ff3b30]" : "text-ink") : "text-[#c7c7cc]"
-                    }`}
-                  >
-                    {dayNumber}
-                  </span>
-                </p>
-                <HalfButton
-                  day={day}
-                  half="morning"
-                  inMonth={inMonth}
-                  members={members}
-                  color={color}
-                  groupId={groupId}
-                  onOpen={setSlot}
-                />
-                <HalfButton
-                  day={day}
-                  half="afternoon"
-                  inMonth={inMonth}
-                  members={members}
-                  color={color}
-                  groupId={groupId}
-                  onOpen={setSlot}
-                />
-              </div>
-            );
-          })}
+          {days.map((cell) => (
+            <DayCell
+              key={cell}
+              day={cell}
+              month={month}
+              today={today}
+              members={members}
+              color={color}
+              groupId={groupId}
+              onOpen={setDay}
+            />
+          ))}
         </div>
       </section>
 
@@ -155,70 +121,72 @@ export function MonthBoard({
         ref={dialogRef}
         aria-labelledby={titleId}
         className="slot-dialog rounded-[28px] bg-paper p-0 text-ink backdrop:bg-black/35"
-        onClose={() => setSlot(null)}
+        onClose={() => setDay(null)}
         onClick={(event) => {
-          if (event.target === dialogRef.current) setSlot(null);
+          if (event.target === dialogRef.current) setDay(null);
         }}
       >
-        {slot ? (
-          <SlotForm
-            key={`${slot.day}-${slot.half}`}
-            titleId={titleId}
-            groupId={groupId}
-            day={slot.day}
-            half={slot.half}
-            onClose={() => setSlot(null)}
-          />
-        ) : null}
+        {day ? <SlotForm key={day} titleId={titleId} groupId={groupId} day={day} onClose={() => setDay(null)} /> : null}
       </dialog>
     </div>
   );
 }
 
-function HalfButton({
+function DayCell({
   day,
-  half,
-  inMonth,
+  month,
+  today,
   members,
   color,
   groupId,
   onOpen,
 }: {
   day: string;
-  half: DayHalf;
-  inMonth: boolean;
+  month: string;
+  today: string;
   members: { userId: string; name: string; entries: CalendarEntry[] }[];
   color: string;
   groupId: string;
-  onOpen: (slot: { day: string; half: DayHalf }) => void;
+  onOpen: (day: string) => void;
 }) {
-  const bounds = halfBounds(day, half);
+  const inMonth = monthKeyOf(day) === month;
+  const isToday = day === today;
+  const dayNumber = Number(day.slice(8, 10));
+  const sunday = shanghaiWeekdayIndex(new Date(`${day}T12:00:00+08:00`)) === 0;
+  const bounds = dayBounds(day);
   const hits = members.flatMap((member) =>
     member.entries
       .filter((entry) => overlaps(new Date(entry.startAt), new Date(entry.endAt), bounds.start, bounds.end))
       .map((entry) => ({ entry, name: member.name })),
   );
-  const shown = hits.slice(0, 2);
-  const label = half === "morning" ? "上午" : "下午";
+  const shown = dedupeHits(hits).slice(0, 3);
 
   return (
     <button
       type="button"
-      className="mb-1 flex w-full flex-col items-stretch rounded-lg px-1 py-0.5 text-left hover:bg-[#f2f2f7]"
-      onClick={() => onOpen({ day, half })}
-      aria-label={`${Number(day.slice(5, 7))}月${Number(day.slice(8, 10))}日${label}，创建行程`}
+      className={`flex min-h-24 flex-col border-b border-r border-line p-1 text-left hover:bg-[#f2f2f7] ${inMonth ? "" : "bg-[#f6f6f8]"}`}
+      onClick={() => onOpen(day)}
+      aria-label={`${Number(day.slice(5, 7))}月${dayNumber}日，新建行程`}
     >
-      <span className={`text-[10px] ${inMonth ? "text-muted" : "text-[#c7c7cc]"}`}>{label}</span>
+      <span className="mb-1 text-center">
+        <span
+          className={`inline-grid size-6 place-items-center rounded-full text-[13px] font-medium ${
+            isToday ? "bg-accent text-white" : inMonth ? (sunday ? "text-[#ff3b30]" : "text-ink") : "text-[#c7c7cc]"
+          }`}
+        >
+          {dayNumber}
+        </span>
+      </span>
       {shown.map(({ entry, name }) => (
         <span
           key={`${entry.source}-${entry.id}-${name}`}
-          className="mt-0.5 truncate rounded px-1 text-[10px] leading-4 text-white"
+          className="mb-0.5 truncate rounded px-1 text-[10px] leading-4 text-white"
           style={{ backgroundColor: chipColor(entry, groupId, color) }}
         >
-          {entry.level === "detail" ? entryLabel(entry) : name}
+          {chipText(entry, name)}
         </span>
       ))}
-      {hits.length > 2 ? <span className="text-[10px] text-muted">+{hits.length - 2}</span> : null}
+      {hits.length > shown.length ? <span className="text-[10px] text-muted">+{hits.length - shown.length}</span> : null}
     </button>
   );
 }
@@ -227,53 +195,80 @@ function SlotForm({
   titleId,
   groupId,
   day,
-  half,
   onClose,
 }: {
   titleId: string;
   groupId: string;
   day: string;
-  half: DayHalf;
   onClose: () => void;
 }) {
-  const clock = halfClock(half);
   const [state, action, pending] = useActionState(createOuting, initialState);
+  const [allDay, setAllDay] = useState(false);
+  const [startTime, setStartTime] = useState("14:00");
+  const [endTime, setEndTime] = useState("16:00");
   const [preview, setPreview] = useState<AvailabilityPreview | null>(null);
+  const nextDay = addDays(day, 1);
+  const startDate = day;
+  const endDate = allDay ? nextDay : day;
+  const start = allDay ? "00:00" : startTime;
+  const end = allDay ? "00:00" : endTime;
+  const invalid = !allDay && endTime <= startTime;
+  const heading = `${Number(day.slice(5, 7))}月${Number(day.slice(8, 10))}日`;
 
   useEffect(() => {
+    if (invalid) return;
     let cancelled = false;
-    void checkAvailability(groupId, day, clock.start, day, clock.end).then((result) => {
-      if (!cancelled) setPreview(result);
-    });
+    const timer = setTimeout(() => {
+      void checkAvailability(groupId, startDate, start, endDate, end).then((result) => {
+        if (!cancelled) setPreview(result);
+      });
+    }, 250);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [groupId, day, clock.start, clock.end]);
-
-  const month = monthKeyOf(day);
-  const heading = `${Number(day.slice(5, 7))}月${Number(day.slice(8, 10))}日 ${half === "morning" ? "上午" : "下午"}`;
+  }, [groupId, startDate, start, endDate, end, invalid]);
 
   return (
     <form action={action} className="space-y-4 p-5">
       <input type="hidden" name="groupId" value={groupId} />
-      <input type="hidden" name="month" value={month} />
-      <input type="hidden" name="startDate" value={day} />
-      <input type="hidden" name="endDate" value={day} />
-      <input type="hidden" name="startTime" value={clock.start} />
-      <input type="hidden" name="endTime" value={clock.end} />
+      <input type="hidden" name="month" value={monthKeyOf(day)} />
+      <input type="hidden" name="startDate" value={startDate} />
+      <input type="hidden" name="endDate" value={endDate} />
+      <input type="hidden" name="startTime" value={start} />
+      <input type="hidden" name="endTime" value={end} />
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 id={titleId} className="text-[22px] font-semibold tracking-tight">
             {heading}
           </h2>
-          <p className="mt-1 text-sm text-muted">
-            {clock.start}–{clock.end} · 北京时间
-          </p>
+          <p className="mt-1 text-sm text-muted">{allDay ? "这一整天" : "自己定开始和结束，或改成全天"}</p>
         </div>
         <button type="button" className="text-sm font-medium text-accent" onClick={onClose}>
           取消
         </button>
       </div>
+      <label className="flex items-center justify-between rounded-2xl bg-card px-3 py-3 text-[17px]">
+        <span>全天</span>
+        <input
+          type="checkbox"
+          className="size-5 accent-[#34c759]"
+          checked={allDay}
+          onChange={(event) => setAllDay(event.target.checked)}
+        />
+      </label>
+      {allDay ? null : (
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className={labelClass}>开始</span>
+            <input className={inputClass} type="time" required value={startTime} onChange={(event) => setStartTime(event.target.value)} />
+          </label>
+          <label className="block">
+            <span className={labelClass}>结束</span>
+            <input className={inputClass} type="time" required value={endTime} onChange={(event) => setEndTime(event.target.value)} />
+          </label>
+        </div>
+      )}
       <label className="block">
         <span className={labelClass}>行程</span>
         <input className={inputClass} name="title" required maxLength={80} placeholder="喝咖啡" autoFocus />
@@ -282,14 +277,14 @@ function SlotForm({
         <span className={labelClass}>地点</span>
         <input className={inputClass} name="place" maxLength={120} placeholder="可选" />
       </label>
-      <AvailabilityList preview={preview} />
+      {invalid ? <p className="text-sm text-muted">结束时间要晚于开始时间。</p> : <AvailabilityList preview={preview} />}
       {state.error ? (
         <p role="alert" className="text-sm text-accent">
           {state.error}
         </p>
       ) : null}
-      <button className={`${buttonClass} w-full`} type="submit" disabled={pending}>
-        {pending ? "创建中…" : "创建行程"}
+      <button className={`${buttonClass} w-full`} type="submit" disabled={pending || invalid}>
+        {pending ? "创建中…" : allDay ? "创建全天行程" : "创建行程"}
       </button>
     </form>
   );
@@ -316,10 +311,26 @@ function overlapsMonth(entry: CalendarEntry, month: string): boolean {
   return overlaps(new Date(entry.startAt), new Date(entry.endAt), start, end);
 }
 
+function dedupeHits(hits: { entry: CalendarEntry; name: string }[]) {
+  const seen = new Set<string>();
+  return hits.filter(({ entry }) => {
+    if (entry.level !== "detail") return true;
+    const key = `${entry.source}-${entry.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function entryLabel(entry: CalendarEntry): string {
   if (entry.level === "busy") return "忙碌";
   if (entry.level === "maybe") return "可能忙";
   return entry.title ?? "忙碌";
+}
+
+function chipText(entry: CalendarEntry, name: string): string {
+  const label = entry.level === "detail" ? entryLabel(entry) : name;
+  return isAllDay(new Date(entry.startAt), new Date(entry.endAt)) ? `全天 ${label}` : label;
 }
 
 function chipColor(entry: CalendarEntry, groupId: string, color: string): string {

@@ -44,3 +44,70 @@ body {
 .slot-dialog::backdrop {
   background: rgba(0, 0, 0, 0.32);
 }
+
+.month-mark {
+  display: block;
+  height: 0.45rem;
+  width: 100%;
+  border-radius: 999px;
+}
+
+.day-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--color-paper);
+}
+
+.day-scroll {
+  overflow-x: auto;
+}
+
+.day-row {
+  position: relative;
+  height: 2rem;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background-color: #f2f2f7;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(100% / 8 - 1px),
+    var(--color-line) calc(100% / 8 - 1px),
+    var(--color-line) calc(100% / 8)
+  );
+}
+
+.day-span {
+  position: absolute;
+  top: 2px;
+  display: flex;
+  height: calc(100% - 4px);
+  min-width: 3px;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 0.35rem;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.day-span span {
+  overflow: hidden;
+  padding: 0 0.35rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-span.is-maybe {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(255, 255, 255, 0.4) 4px,
+    rgba(255, 255, 255, 0.4) 7px
+  );
+}

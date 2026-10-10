@@ -1,44 +1,20 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useId, useRef, useState } from "react";
 
-import {
-  addDays,
-  addMonths,
-  dayBounds,
-  formatClock,
-  formatDay,
-  formatMonthTitle,
-  formatOccupied,
-  isAllDay,
-  monthKeyOf,
-  shanghaiWeekdayIndex,
-  shanghaiYmd,
-} from "@/lib/time";
+import { DayScreen, entriesOnDay, type CalendarEntry, type CalendarMember } from "@/components/day-screen";
 import { ParticipantPicker } from "@/components/participant-picker";
 import { buttonClass, inputClass, labelClass } from "@/lib/ui";
-import { overlaps, type VisibleEntry } from "@/lib/visibility";
+import { addDays, formatDay, formatMonthTitle, monthKeyOf, shanghaiWeekdayIndex } from "@/lib/time";
 import { checkAvailability, createOuting, type ActionState, type AvailabilityPreview } from "@/server/outing-actions";
 
 const WEEKDAYS = ["一", "二", "三", "四", "五", "六", "日"] as const;
 const initialState: ActionState = {};
 
-export type CalendarEntry = {
-  id: string;
-  source: VisibleEntry["source"];
-  level: VisibleEntry["level"];
-  title: string | null;
-  place: string | null;
-  startAt: string;
-  endAt: string;
-  userId: string;
-  groupId?: string;
-  status?: string;
-};
+export type { CalendarEntry, CalendarMember };
 
 export function MonthBoard({
   groupId,
-  color,
   month,
   today,
   days,
@@ -46,17 +22,17 @@ export function MonthBoard({
   viewerId,
 }: {
   groupId: string;
-  color: string;
   month: string;
   today: string;
   days: string[];
   viewerId: string;
-  members: { userId: string; name: string; entries: CalendarEntry[] }[];
+  members: CalendarMember[];
 }) {
   const [openDay, setOpenDay] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const closeDay = useCallback(() => setOpenDay(null), []);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -67,45 +43,19 @@ export function MonthBoard({
 
   return (
     <div className="space-y-4">
-      <section aria-label="每个人这个月已经占用的时间">
-        <h2 className="text-[13px] font-medium tracking-wide text-muted">这个月已经占用</h2>
-        <ul className="mt-2 flex gap-3 overflow-x-auto pb-1">
-          {members.map((member) => {
-            const occupied = member.entries.filter((entry) => overlapsMonth(entry, month));
-            return (
-              <li key={member.userId} className="w-64 shrink-0 rounded-2xl bg-card p-3 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="grid size-8 shrink-0 place-items-center rounded-full text-sm font-medium text-white"
-                    style={{ backgroundColor: member.userId === viewerId ? "#007aff" : color }}
-                  >
-                    {member.name.slice(0, 1)}
-                  </span>
-                  <p className="truncate font-medium">
-                    {member.name}
-                    {member.userId === viewerId ? <span className="ml-1 text-xs font-normal text-muted">我</span> : null}
-                  </p>
-                </div>
-                {occupied.length === 0 ? (
-                  <p className="mt-2 text-[13px] text-muted">这个月没有占用</p>
-                ) : (
-                  <ul className="mt-2 space-y-1">
-                    {occupied.slice(0, 4).map((entry) => (
-                      <li key={`${entry.source}-${entry.id}-${member.userId}`} className="truncate text-[13px] text-ink">
-                        <span className={entry.level === "maybe" ? "text-maybe" : ""}>
-                          {formatOccupied(new Date(entry.startAt), new Date(entry.endAt))}
-                        </span>
-                        <span className="text-muted"> · {entryLabel(entry)}</span>
-                      </li>
-                    ))}
-                    {occupied.length > 4 ? <li className="text-[13px] text-muted">还有 {occupied.length - 4} 段</li> : null}
-                  </ul>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      <ul className="flex flex-wrap gap-2" aria-label="人物颜色">
+        {members.map((member) => (
+          <li
+            key={member.userId}
+            className="inline-flex items-center gap-1.5 rounded-full bg-card py-1 pr-2.5 pl-1.5 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+          >
+            <span className="inline-block h-2.5 w-6 rounded-full" style={{ backgroundColor: member.color }} aria-hidden="true" />
+            <span>{member.name}</span>
+            {member.userId === viewerId ? <span className="text-muted">我</span> : null}
+          </li>
+        ))}
+      </ul>
+      <p className="text-sm text-muted">颜色对应每个人。点某一天，全屏看这一天的时间。空心是可能忙。</p>
 
       <section className="overflow-hidden rounded-3xl bg-card shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
         <h2 className="sr-only">{formatMonthTitle(month)}</h2>
@@ -115,38 +65,27 @@ export function MonthBoard({
           ))}
         </div>
         {chunkWeeks(days).map((week) => (
-          <div key={week[0]}>
-            <div className="grid grid-cols-7">
-              {week.map((cell) => (
-                <DayCell
-                  key={cell}
-                  day={cell}
-                  month={month}
-                  today={today}
-                  members={members}
-                  color={color}
-                  groupId={groupId}
-                  selected={openDay === cell}
-                  onOpen={(next) => {
-                    setCreating(false);
-                    setOpenDay((current) => (current === next ? null : next));
-                  }}
-                />
-              ))}
-            </div>
-            {openDay && week.includes(openDay) ? (
-              <DayAgenda
-                day={openDay}
+          <div key={week[0]} className="grid grid-cols-7">
+            {week.map((cell) => (
+              <DayCell
+                key={cell}
+                day={cell}
+                month={month}
+                today={today}
                 members={members}
-                viewerId={viewerId}
-                color={color}
-                groupId={groupId}
-                onCreate={() => setCreating(true)}
+                onOpen={(next) => {
+                  setCreating(false);
+                  setOpenDay(next);
+                }}
               />
-            ) : null}
+            ))}
           </div>
         ))}
       </section>
+
+      {openDay ? (
+        <DayScreen day={openDay} members={members} viewerId={viewerId} onClose={closeDay} onCreate={() => setCreating(true)} />
+      ) : null}
 
       <dialog
         ref={dialogRef}
@@ -178,41 +117,28 @@ function DayCell({
   month,
   today,
   members,
-  color,
-  groupId,
-  selected,
   onOpen,
 }: {
   day: string;
   month: string;
   today: string;
-  members: { userId: string; name: string; entries: CalendarEntry[] }[];
-  color: string;
-  groupId: string;
-  selected: boolean;
+  members: CalendarMember[];
   onOpen: (day: string) => void;
 }) {
   const inMonth = monthKeyOf(day) === month;
   const isToday = day === today;
   const dayNumber = Number(day.slice(8, 10));
   const sunday = shanghaiWeekdayIndex(new Date(`${day}T12:00:00+08:00`)) === 0;
-  const bounds = dayBounds(day);
-  const hits = members.flatMap((member) =>
-    member.entries
-      .filter((entry) => overlaps(new Date(entry.startAt), new Date(entry.endAt), bounds.start, bounds.end))
-      .map((entry) => ({ entry, name: member.name })),
-  );
-  const shown = dedupeHits(hits).slice(0, 3);
+  const marks = marksFor(day, members);
 
   return (
     <button
       type="button"
       className={`flex min-h-24 flex-col border-b border-r border-line p-1 text-left hover:bg-[#f2f2f7] ${
-        selected ? "bg-[#e8f1ff]" : inMonth ? "" : "bg-[#f6f6f8]"
+        inMonth ? "" : "bg-[#f6f6f8]"
       }`}
       onClick={() => onOpen(day)}
-      aria-pressed={selected}
-      aria-label={`${Number(day.slice(5, 7))}月${dayNumber}日，展开这一天`}
+      aria-label={dayLabel(day, marks)}
     >
       <span className="mb-1 text-center">
         <span
@@ -223,108 +149,49 @@ function DayCell({
           {dayNumber}
         </span>
       </span>
-      {shown.map(({ entry, name }) => (
-        <span
-          key={`${entry.source}-${entry.id}-${name}`}
-          className="mb-0.5 truncate rounded px-1 text-[10px] leading-4 text-white"
-          style={{ backgroundColor: chipColor(entry, groupId, color) }}
-        >
-          {chipText(entry, name)}
-        </span>
-      ))}
-      {hits.length > shown.length ? <span className="text-[10px] text-muted">+{hits.length - shown.length}</span> : null}
+      <span className="flex flex-col gap-0.5">
+        {marks.map((mark) => (
+          <span
+            key={mark.userId}
+            className="month-mark"
+            style={
+              mark.uncertain
+                ? { backgroundColor: "transparent", boxShadow: `inset 0 0 0 2px ${mark.color}` }
+                : { backgroundColor: mark.color }
+            }
+            title={mark.uncertain ? `${mark.name} · 可能忙` : mark.name}
+          />
+        ))}
+      </span>
     </button>
   );
 }
 
-function DayAgenda({
-  day,
-  members,
-  viewerId,
-  color,
-  groupId,
-  onCreate,
-}: {
-  day: string;
-  members: { userId: string; name: string; entries: CalendarEntry[] }[];
-  viewerId: string;
-  color: string;
-  groupId: string;
-  onCreate: () => void;
-}) {
-  const ordered = [...members].sort((a, b) => Number(b.userId === viewerId) - Number(a.userId === viewerId));
-  return (
-    <section className="border-t border-line px-4 py-4" aria-label={formatDay(day)}>
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-[20px] font-semibold tracking-tight">{formatDay(day)}</h3>
-        <button type="button" className={buttonClass} onClick={onCreate}>
-          约这一天
-        </button>
-      </div>
-      <ul className="mt-3 divide-y divide-line">
-        {ordered.map((member) => {
-          const items = entriesOnDay(member.entries, day);
-          return (
-            <li key={member.userId} className="flex gap-3 py-3">
-              <span
-                className="grid size-8 shrink-0 place-items-center rounded-full text-sm font-medium text-white"
-                style={{ backgroundColor: member.userId === viewerId ? "#007aff" : color }}
-              >
-                {member.name.slice(0, 1)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">
-                  {member.name}
-                  {member.userId === viewerId ? <span className="ml-1 text-xs font-normal text-muted">我</span> : null}
-                </p>
-                {items.length === 0 ? <p className="mt-1 text-sm text-muted">这一天没有安排</p> : null}
-                <ul className="mt-1 space-y-1">
-                  {items.map((entry) => (
-                    <li key={`${entry.source}-${entry.id}`} className="text-sm">
-                      <span
-                        className="mr-2 inline-block size-2 rounded-full align-middle"
-                        style={{ backgroundColor: chipColor(entry, groupId, color) }}
-                      />
-                      <span className="tabular-nums text-muted">{whenLabel(entry, day)}</span>
-                      <span className="ml-2">{entryLabel(entry)}</span>
-                      {entry.level === "detail" && entry.place ? <span className="text-muted"> · {entry.place}</span> : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
+function marksFor(day: string, members: CalendarMember[]) {
+  return members.flatMap((member) => {
+    const hits = entriesOnDay(member.entries, day);
+    if (hits.length === 0) return [];
+    return [
+      {
+        userId: member.userId,
+        name: member.name,
+        color: member.color,
+        uncertain: hits.every((entry) => entry.level === "maybe" || entry.status === "maybe"),
+      },
+    ];
+  });
+}
+
+function dayLabel(day: string, marks: { name: string; uncertain: boolean }[]): string {
+  const when = formatDay(day);
+  if (marks.length === 0) return `${when}，空闲`;
+  return `${when}，${marks.map((mark) => `${mark.name}${mark.uncertain ? "可能忙" : "有安排"}`).join("、")}`;
 }
 
 function chunkWeeks(days: string[]): string[][] {
   const weeks: string[][] = [];
   for (let index = 0; index < days.length; index += 7) weeks.push(days.slice(index, index + 7));
   return weeks;
-}
-
-function entriesOnDay(entries: CalendarEntry[], day: string): CalendarEntry[] {
-  const bounds = dayBounds(day);
-  return entries
-    .filter((entry) => overlaps(new Date(entry.startAt), new Date(entry.endAt), bounds.start, bounds.end))
-    .sort((a, b) => a.startAt.localeCompare(b.startAt));
-}
-
-function whenLabel(entry: CalendarEntry, day: string): string {
-  const start = new Date(entry.startAt);
-  const end = new Date(entry.endAt);
-  if (isAllDay(start, end)) return "全天";
-  const startDay = shanghaiYmd(start);
-  const endDay = shanghaiYmd(end);
-  if (startDay === day && (endDay === day || (endDay === addDays(day, 1) && formatClock(end) === "00:00"))) {
-    return formatClock(end) === "00:00" ? `${formatClock(start)} 开始` : `${formatClock(start)}–${formatClock(end)}`;
-  }
-  if (startDay === day) return `${formatClock(start)} 开始`;
-  if (endDay === day) return `直到 ${formatClock(end)}`;
-  return "全天";
 }
 
 function SlotForm({
@@ -449,39 +316,4 @@ function SlotForm({
       </button>
     </form>
   );
-}
-
-function overlapsMonth(entry: CalendarEntry, month: string): boolean {
-  const start = new Date(`${month}-01T00:00:00+08:00`);
-  const end = new Date(`${addMonths(month, 1)}-01T00:00:00+08:00`);
-  return overlaps(new Date(entry.startAt), new Date(entry.endAt), start, end);
-}
-
-function dedupeHits(hits: { entry: CalendarEntry; name: string }[]) {
-  const seen = new Set<string>();
-  return hits.filter(({ entry }) => {
-    if (entry.level !== "detail") return true;
-    const key = `${entry.source}-${entry.id}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function entryLabel(entry: CalendarEntry): string {
-  if (entry.level === "busy") return "忙碌";
-  if (entry.level === "maybe") return "可能忙";
-  return entry.title ?? "忙碌";
-}
-
-function chipText(entry: CalendarEntry, name: string): string {
-  const label = entry.level === "detail" ? entryLabel(entry) : name;
-  return isAllDay(new Date(entry.startAt), new Date(entry.endAt)) ? `全天 ${label}` : label;
-}
-
-function chipColor(entry: CalendarEntry, groupId: string, color: string): string {
-  if (entry.level === "maybe") return "#ff9500";
-  if (entry.level === "busy") return "#8e8e93";
-  if (entry.source === "outing" && entry.groupId && entry.groupId !== groupId) return "#8e8e93";
-  return color;
 }

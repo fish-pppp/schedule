@@ -55,7 +55,7 @@ export function MonthBoard({
           </li>
         ))}
       </ul>
-      <p className="text-sm text-muted">颜色对应每个人。点某一天，全屏看这一天的时间。空心是可能忙。</p>
+      <p className="text-sm text-muted">颜色对应每个人。点某一天，从上到下看这一天的时间。同一时间有多个人时，颜色并排。空心或斜线是可能忙。</p>
 
       <section className="overflow-hidden rounded-3xl bg-card shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
         <h2 className="sr-only">{formatMonthTitle(month)}</h2>

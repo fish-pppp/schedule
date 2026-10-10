@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, gt, inArray, lt, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, lt, ne, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { buddyGroup, membership, outing, personalBlock, rsvp, user } from "@/db/schema";
@@ -12,6 +12,7 @@ import {
   type RsvpStatus,
   type VisibleEntry,
 } from "@/lib/visibility";
+import { pendingOutingIds } from "@/lib/invite";
 import { currentShanghaiYmd, dayBounds, isMonthKey, monthGrid, monthKeyOf } from "@/lib/time";
 
 export async function listGroupMembers(groupId: string) {
@@ -64,19 +65,29 @@ export async function getHome(userId: string) {
   ]);
 
   const groupIds = groups.map((group) => group.id);
-  const counts =
+  const outingIds = upcomingOutings.map((plan) => plan.id);
+  const [counts, pendingRows] = await Promise.all([
     groupIds.length === 0
-      ? []
-      : await db
+      ? Promise.resolve([])
+      : db
           .select({
             groupId: membership.groupId,
             total: sql<number>`cast(count(*) as int)`,
           })
           .from(membership)
           .where(inArray(membership.groupId, groupIds))
-          .groupBy(membership.groupId);
+          .groupBy(membership.groupId),
+    outingIds.length === 0
+      ? Promise.resolve([])
+      : db
+          .select({ outingId: rsvp.outingId, status: rsvp.status })
+          .from(rsvp)
+          .where(and(inArray(rsvp.outingId, outingIds), eq(rsvp.status, "invited"))),
+  ]);
+  const pending = pendingOutingIds(pendingRows);
+  const settledOutings = upcomingOutings.filter((plan) => !pending.has(plan.id));
 
-  return { groups, blocks, upcomingOutings, counts };
+  return { groups, blocks, upcomingOutings: settledOutings, counts };
 }
 
 export async function getOwnBlocks(userId: string) {
@@ -198,6 +209,7 @@ export async function getGroupPage(userId: string, groupId: string, monthParam: 
           .innerJoin(user, eq(user.id, rsvp.userId))
           .where(inArray(rsvp.outingId, upcomingIds));
 
+  const pendingOnCalendar = pendingOutingIds(occupied);
   const outingMap = new Map<
     string,
     {
@@ -211,6 +223,7 @@ export async function getGroupPage(userId: string, groupId: string, monthParam: 
   >();
   const rsvpRows: { outingId: string; userId: string; status: RsvpStatus }[] = [];
   for (const row of occupied) {
+    if (pendingOnCalendar.has(row.outingId)) continue;
     if (row.status !== "going" && row.status !== "maybe" && row.status !== "no") continue;
     outingMap.set(row.outingId, {
       id: row.outingId,
@@ -248,7 +261,8 @@ export async function getGroupPage(userId: string, groupId: string, monthParam: 
     }),
   }));
 
-  const outingCards: GroupPageOuting[] = upcoming.map((item) => ({
+  const pendingCards = pendingOutingIds(responses);
+  const outingCards: GroupPageOuting[] = upcoming.filter((item) => !pendingCards.has(item.id)).map((item) => ({
     id: item.id,
     title: item.title,
     place: item.place,
@@ -313,11 +327,13 @@ export async function previewAvailability(
       .where(and(inArray(rsvp.userId, memberIds), lt(outing.startAt, end), gt(outing.endAt, start))),
   ]);
 
+  const pendingPreview = pendingOutingIds(occupied);
   const outingMap = new Map<
     string,
     { id: string; groupId: string; title: string; place: string | null; startAt: Date; endAt: Date }
   >();
   for (const item of occupied) {
+    if (pendingPreview.has(item.outingId)) continue;
     outingMap.set(item.outingId, {
       id: item.outingId,
       groupId: item.groupId,
@@ -347,7 +363,8 @@ export async function previewAvailability(
       rsvps: occupied
         .filter(
           (item): item is typeof item & { status: RsvpStatus } =>
-            item.status === "going" || item.status === "maybe" || item.status === "no",
+            !pendingPreview.has(item.outingId) &&
+            (item.status === "going" || item.status === "maybe" || item.status === "no"),
         )
         .map((item) => ({
           outingId: item.outingId,
@@ -365,6 +382,113 @@ export async function previewAvailability(
   const rank: Record<Availability, number> = { busy: 0, maybe: 1, free: 2 };
   people.sort((a, b) => rank[a.state] - rank[b.state] || a.name.localeCompare(b.name, "zh"));
   return people;
+}
+
+export type InboxPlan = {
+  id: string;
+  title: string;
+  place: string | null;
+  startAt: Date;
+  endAt: Date;
+  groupId: string;
+  groupName: string;
+  createdBy: string;
+  creatorName: string;
+  myStatus: string;
+  people: { userId: string; name: string; status: string }[];
+};
+
+export async function countOpenInvites(userId: string) {
+  const rows = await db
+    .select({ total: sql<number>`cast(count(*) as int)` })
+    .from(rsvp)
+    .innerJoin(outing, eq(rsvp.outingId, outing.id))
+    .where(and(eq(rsvp.userId, userId), eq(rsvp.status, "invited"), gt(outing.endAt, new Date())));
+  return Number(rows[0]?.total ?? 0);
+}
+
+export async function getInbox(userId: string): Promise<{ received: InboxPlan[]; sent: InboxPlan[]; waiting: InboxPlan[] }> {
+  const now = new Date();
+  const planShape = {
+    id: outing.id,
+    title: outing.title,
+    place: outing.place,
+    startAt: outing.startAt,
+    endAt: outing.endAt,
+    groupId: outing.groupId,
+    groupName: buddyGroup.name,
+    createdBy: outing.createdBy,
+  };
+  const [receivedBase, sentBase, answeredBase] = await Promise.all([
+    db
+      .select(planShape)
+      .from(rsvp)
+      .innerJoin(outing, eq(rsvp.outingId, outing.id))
+      .innerJoin(buddyGroup, eq(outing.groupId, buddyGroup.id))
+      .where(and(eq(rsvp.userId, userId), eq(rsvp.status, "invited"), ne(outing.createdBy, userId), gt(outing.endAt, now)))
+      .orderBy(asc(outing.startAt)),
+    db
+      .select(planShape)
+      .from(outing)
+      .innerJoin(buddyGroup, eq(outing.groupId, buddyGroup.id))
+      .where(and(eq(outing.createdBy, userId), gt(outing.endAt, now)))
+      .orderBy(asc(outing.startAt))
+      .limit(30),
+    db
+      .select(planShape)
+      .from(rsvp)
+      .innerJoin(outing, eq(rsvp.outingId, outing.id))
+      .innerJoin(buddyGroup, eq(outing.groupId, buddyGroup.id))
+      .where(
+        and(
+          eq(rsvp.userId, userId),
+          inArray(rsvp.status, ["going", "maybe"]),
+          ne(outing.createdBy, userId),
+          gt(outing.endAt, now),
+        ),
+      )
+      .orderBy(asc(outing.startAt)),
+  ]);
+
+  const ids = [...new Set([...receivedBase, ...sentBase, ...answeredBase].map((item) => item.id))];
+  if (ids.length === 0) return { received: [], sent: [], waiting: [] };
+
+  const creatorIds = [...new Set([...receivedBase, ...sentBase, ...answeredBase].map((item) => item.createdBy))];
+  const [responses, creators] = await Promise.all([
+    db
+      .select({
+        outingId: rsvp.outingId,
+        userId: rsvp.userId,
+        status: rsvp.status,
+        name: user.name,
+      })
+      .from(rsvp)
+      .innerJoin(user, eq(user.id, rsvp.userId))
+      .where(inArray(rsvp.outingId, ids)),
+    db.select({ id: user.id, name: user.name }).from(user).where(inArray(user.id, creatorIds)),
+  ]);
+  const names = new Map(creators.map((creator) => [creator.id, creator.name]));
+  const peopleByOuting = new Map<string, InboxPlan["people"]>();
+  for (const response of responses) {
+    const list = peopleByOuting.get(response.outingId) ?? [];
+    list.push({ userId: response.userId, name: response.name, status: response.status });
+    peopleByOuting.set(response.outingId, list);
+  }
+
+  const pack = (item: (typeof receivedBase)[number]): InboxPlan => ({
+    ...item,
+    creatorName: names.get(item.createdBy) ?? "有人",
+    myStatus: peopleByOuting.get(item.id)?.find((person) => person.userId === userId)?.status ?? "",
+    people: peopleByOuting.get(item.id) ?? [],
+  });
+
+  const stillPending = (item: { id: string }) =>
+    (peopleByOuting.get(item.id) ?? []).some((person) => person.status === "invited");
+  return {
+    received: receivedBase.map(pack),
+    sent: sentBase.filter(stillPending).map(pack),
+    waiting: answeredBase.filter(stillPending).map(pack),
+  };
 }
 
 export async function findGroupByInvite(code: string) {

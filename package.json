@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test src/lib/visibility.test.ts src/lib/time.test.ts src/lib/paths.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/visibility.test.ts src/lib/time.test.ts src/lib/paths.test.ts src/lib/invite.test.ts",
     "db:up": "docker compose up -d",
     "db:push": "drizzle-kit push --force"
   },

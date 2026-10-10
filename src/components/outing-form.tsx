@@ -110,7 +110,9 @@ export function OutingForm({
           />
         </label>
       </div>
-      <p className="text-sm text-muted">勾选的人算参加，其他搭子组只会看到他们这段时间忙碌。时间按北京时间。</p>
+      <p className="text-sm text-muted">
+        只约自己会直接出现在日历上。约了别人，要等他们在收件箱里同意；同意前都可以改时间。时间按北京时间。
+      </p>
       <ParticipantPicker
         people={members.map((member) => ({
           ...member,
@@ -137,7 +139,7 @@ export function OutingForm({
         </p>
       ) : null}
       <button className={buttonClass} type="submit" disabled={pending || invalid || selected.length === 0}>
-        {pending ? "创建中…" : "约这个行程"}
+        {pending ? "发送中…" : "发出邀请"}
       </button>
     </form>
   );

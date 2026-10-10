@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 
 import { db } from "@/db";
 import { membership, outing, rsvp } from "@/db/schema";
@@ -82,13 +82,15 @@ export async function createOuting(_prev: ActionState, formData: FormData): Prom
         id: createId(),
         outingId,
         userId,
-        status: "going",
+        status: userId === user.id ? "going" : "invited",
         updatedAt: now,
       })),
     );
   });
 
   refreshSchedule();
+  const asksOthers = participants.some((userId) => userId !== user.id);
+  if (asksOthers) redirect("/inbox");
   const month = String(formData.get("month") ?? "");
   redirect(isMonthKey(month) ? `/groups/${groupId}?month=${month}` : `/groups/${groupId}`);
 }
@@ -167,6 +169,92 @@ export async function updateOuting(_prev: ActionState, formData: FormData): Prom
   refreshSchedule();
   const month = String(formData.get("month") ?? "");
   redirect(isMonthKey(month) ? `/groups/${plan.groupId}?month=${month}` : `/groups/${plan.groupId}`);
+}
+
+export async function acceptInvite(formData: FormData) {
+  await answerInvite(formData, "going");
+}
+
+export async function declineInvite(formData: FormData) {
+  await answerInvite(formData, "no");
+}
+
+async function answerInvite(formData: FormData, status: "going" | "no") {
+  const user = await requireUser();
+  const outingId = String(formData.get("outingId") ?? "");
+  const rows = await db
+    .select({ status: rsvp.status, groupId: outing.groupId })
+    .from(rsvp)
+    .innerJoin(outing, eq(rsvp.outingId, outing.id))
+    .where(and(eq(rsvp.outingId, outingId), eq(rsvp.userId, user.id)))
+    .limit(1);
+  const mine = rows[0];
+  if (!mine || mine.status !== "invited") return;
+  const access = await requireGroupMember(mine.groupId, user.id);
+  if (!access) return;
+
+  await db
+    .update(rsvp)
+    .set({ status, updatedAt: new Date() })
+    .where(and(eq(rsvp.outingId, outingId), eq(rsvp.userId, user.id)));
+  refreshSchedule();
+}
+
+export async function reviseOutingTime(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const outingId = String(formData.get("outingId") ?? "");
+  const rows = await db
+    .select({ groupId: outing.groupId, createdBy: outing.createdBy })
+    .from(outing)
+    .where(eq(outing.id, outingId))
+    .limit(1);
+  const plan = rows[0];
+  if (!plan) return { error: "找不到这个行程" };
+  const access = await requireGroupMember(plan.groupId, user.id);
+  if (!access) return { error: "你不在这个搭子组里" };
+
+  const mine = await db
+    .select({ id: rsvp.id })
+    .from(rsvp)
+    .where(and(eq(rsvp.outingId, outingId), eq(rsvp.userId, user.id)))
+    .limit(1);
+  if (!mine[0] && plan.createdBy !== user.id) return { error: "这不是给你的行程" };
+
+  const range = parseRange({
+    startDate: String(formData.get("startDate") ?? ""),
+    startTime: String(formData.get("startTime") ?? ""),
+    endDate: String(formData.get("endDate") ?? ""),
+    endTime: String(formData.get("endTime") ?? ""),
+  });
+  if ("error" in range) return range;
+
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    await tx
+      .update(outing)
+      .set({ startAt: range.start, endAt: range.end })
+      .where(and(eq(outing.id, outingId), eq(outing.groupId, plan.groupId)));
+    await tx
+      .update(rsvp)
+      .set({ status: "invited", updatedAt: now })
+      .where(and(eq(rsvp.outingId, outingId), ne(rsvp.userId, user.id)));
+    await tx
+      .insert(rsvp)
+      .values({
+        id: createId(),
+        outingId,
+        userId: user.id,
+        status: "going",
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [rsvp.outingId, rsvp.userId],
+        set: { status: "going", updatedAt: now },
+      });
+  });
+
+  refreshSchedule();
+  redirect("/inbox");
 }
 
 export async function deleteOuting(formData: FormData) {

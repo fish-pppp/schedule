@@ -258,7 +258,9 @@ function SlotForm({
           <h2 id={titleId} className="text-[22px] font-semibold tracking-tight">
             {heading}
           </h2>
-          <p className="mt-1 text-sm text-muted">{allDay ? "这一整天" : "自己定开始和结束，或改成全天"}</p>
+          <p className="mt-1 text-sm text-muted">
+            {allDay ? "这一整天" : "自己定开始和结束，或改成全天"}。别人要在收件箱里同意，行程才会出现。
+          </p>
         </div>
         <button type="button" className="text-sm font-medium text-accent" onClick={onClose}>
           取消
@@ -312,7 +314,7 @@ function SlotForm({
         </p>
       ) : null}
       <button className={`${buttonClass} w-full`} type="submit" disabled={pending || invalid || nobody}>
-        {pending ? "创建中…" : allDay ? "创建全天行程" : "创建行程"}
+        {pending ? "发送中…" : allDay ? "发出全天邀请" : "发出邀请"}
       </button>
     </form>
   );

@@ -3,13 +3,13 @@
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 
 import { addDays, addMonths, dayBounds, formatMonthTitle, formatOccupied, isAllDay, monthKeyOf, shanghaiWeekdayIndex } from "@/lib/time";
+import { ParticipantPicker } from "@/components/participant-picker";
 import { buttonClass, inputClass, labelClass } from "@/lib/ui";
 import { overlaps, type VisibleEntry } from "@/lib/visibility";
 import { checkAvailability, createOuting, type ActionState, type AvailabilityPreview } from "@/server/outing-actions";
 
 const WEEKDAYS = ["一", "二", "三", "四", "五", "六", "日"] as const;
 const initialState: ActionState = {};
-const stateLabel = { busy: "忙碌", maybe: "可能有空", free: "空闲" } as const;
 
 export type CalendarEntry = {
   id: string;
@@ -126,7 +126,17 @@ export function MonthBoard({
           if (event.target === dialogRef.current) setDay(null);
         }}
       >
-        {day ? <SlotForm key={day} titleId={titleId} groupId={groupId} day={day} onClose={() => setDay(null)} /> : null}
+        {day ? (
+          <SlotForm
+            key={day}
+            titleId={titleId}
+            groupId={groupId}
+            day={day}
+            viewerId={viewerId}
+            members={members.map((member) => ({ userId: member.userId, name: member.name }))}
+            onClose={() => setDay(null)}
+          />
+        ) : null}
       </dialog>
     </div>
   );
@@ -195,17 +205,22 @@ function SlotForm({
   titleId,
   groupId,
   day,
+  viewerId,
+  members,
   onClose,
 }: {
   titleId: string;
   groupId: string;
   day: string;
+  viewerId: string;
+  members: { userId: string; name: string }[];
   onClose: () => void;
 }) {
   const [state, action, pending] = useActionState(createOuting, initialState);
   const [allDay, setAllDay] = useState(false);
   const [startTime, setStartTime] = useState("14:00");
   const [endTime, setEndTime] = useState("16:00");
+  const [selected, setSelected] = useState<string[]>([viewerId]);
   const [preview, setPreview] = useState<AvailabilityPreview | null>(null);
   const nextDay = addDays(day, 1);
   const startDate = day;
@@ -213,6 +228,14 @@ function SlotForm({
   const start = allDay ? "00:00" : startTime;
   const end = allDay ? "00:00" : endTime;
   const invalid = !allDay && endTime <= startTime;
+  const nobody = selected.length === 0;
+  const people = members.map((member) => ({
+    ...member,
+    state:
+      preview && !("error" in preview)
+        ? preview.people.find((person) => person.userId === member.userId)?.state
+        : undefined,
+  }));
   const heading = `${Number(day.slice(5, 7))}月${Number(day.slice(8, 10))}日`;
 
   useEffect(() => {
@@ -277,31 +300,28 @@ function SlotForm({
         <span className={labelClass}>地点</span>
         <input className={inputClass} name="place" maxLength={120} placeholder="可选" />
       </label>
-      {invalid ? <p className="text-sm text-muted">结束时间要晚于开始时间。</p> : <AvailabilityList preview={preview} />}
+      <ParticipantPicker
+        people={people}
+        selected={selected}
+        viewerId={viewerId}
+        onToggle={(userId) =>
+          setSelected((current) =>
+            current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId],
+          )
+        }
+      />
+      {invalid ? <p className="text-sm text-muted">结束时间要晚于开始时间。</p> : null}
+      {nobody ? <p className="text-sm text-muted">先勾选一起去的人。</p> : null}
+      {preview && "error" in preview ? <p className="text-sm text-accent">{preview.error}</p> : null}
       {state.error ? (
         <p role="alert" className="text-sm text-accent">
           {state.error}
         </p>
       ) : null}
-      <button className={`${buttonClass} w-full`} type="submit" disabled={pending || invalid}>
+      <button className={`${buttonClass} w-full`} type="submit" disabled={pending || invalid || nobody}>
         {pending ? "创建中…" : allDay ? "创建全天行程" : "创建行程"}
       </button>
     </form>
-  );
-}
-
-function AvailabilityList({ preview }: { preview: AvailabilityPreview | null }) {
-  if (!preview) return <p className="text-sm text-muted">正在看大家的空闲…</p>;
-  if ("error" in preview) return <p className="text-sm text-accent">{preview.error}</p>;
-  return (
-    <ul className="overflow-hidden rounded-2xl bg-card text-sm">
-      {preview.people.map((person) => (
-        <li key={person.userId} className="flex items-center justify-between gap-3 border-b border-line px-3 py-2 last:border-b-0">
-          <span>{person.name}</span>
-          <span className={person.state === "free" ? "text-muted" : "font-medium"}>{stateLabel[person.state]}</span>
-        </li>
-      ))}
-    </ul>
   );
 }
 

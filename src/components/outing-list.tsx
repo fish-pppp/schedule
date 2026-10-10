@@ -43,7 +43,7 @@ export function OutingList({
                   <dd className="inline">{names(plan.responses, "no")}</dd>
                 </div>
                 <div>
-                  <dt className="inline font-medium">未回复：</dt>
+                  <dt className="inline font-medium">没约：</dt>
                   <dd className="inline">{pending.map((member) => member.name).join("、") || "没有"}</dd>
                 </div>
               </dl>

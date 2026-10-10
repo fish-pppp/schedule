@@ -1,9 +1,9 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { outing, rsvp } from "@/db/schema";
+import { membership, outing, rsvp } from "@/db/schema";
 import { createId } from "@/lib/ids";
 import { isTextError, optionalText, requiredText } from "@/lib/text";
 import { isMonthKey, parseRange } from "@/lib/time";
@@ -55,6 +55,15 @@ export async function createOuting(_prev: ActionState, formData: FormData): Prom
   });
   if ("error" in range) return range;
 
+  const requested = [...new Set(formData.getAll("participant").map((value) => String(value)).filter(Boolean))];
+  if (requested.length === 0) return { error: "先勾选一起去的人" };
+  const members = await db
+    .select({ userId: membership.userId })
+    .from(membership)
+    .where(and(eq(membership.groupId, groupId), inArray(membership.userId, requested)));
+  const participants = members.map((member) => member.userId);
+  if (participants.length !== requested.length) return { error: "有人不是这个搭子组的" };
+
   const outingId = createId();
   const now = new Date();
   await db.transaction(async (tx) => {
@@ -68,13 +77,15 @@ export async function createOuting(_prev: ActionState, formData: FormData): Prom
       createdBy: user.id,
       createdAt: now,
     });
-    await tx.insert(rsvp).values({
-      id: createId(),
-      outingId,
-      userId: user.id,
-      status: "going",
-      updatedAt: now,
-    });
+    await tx.insert(rsvp).values(
+      participants.map((userId) => ({
+        id: createId(),
+        outingId,
+        userId,
+        status: "going",
+        updatedAt: now,
+      })),
+    );
   });
 
   refreshSchedule();

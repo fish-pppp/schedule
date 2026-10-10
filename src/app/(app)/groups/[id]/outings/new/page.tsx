@@ -6,6 +6,7 @@ import { OutingForm } from "@/components/outing-form";
 import { cardClass } from "@/lib/ui";
 import { currentShanghaiYmd, isYmd } from "@/lib/time";
 import { requireGroupMember, requireUser } from "@/server/guard";
+import { listGroupMembers } from "@/server/queries";
 
 export const metadata = { title: "约行程" };
 
@@ -47,6 +48,7 @@ async function NewOutingContent({
   }
 
   const defaultDate = date && isYmd(date) ? date : currentShanghaiYmd();
+  const members = await listGroupMembers(id);
 
   return (
     <main id="main" className="mx-auto max-w-lg space-y-4">
@@ -57,7 +59,7 @@ async function NewOutingContent({
       </p>
       <h1 className="text-3xl font-semibold tracking-tight">约一个行程</h1>
       <div className={cardClass}>
-        <OutingForm key={defaultDate} groupId={id} defaultDate={defaultDate} />
+        <OutingForm key={defaultDate} groupId={id} defaultDate={defaultDate} viewerId={user.id} members={members} />
       </div>
     </main>
   );

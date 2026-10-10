@@ -2,23 +2,29 @@
 
 import { useActionState, useEffect, useState } from "react";
 
+import { ParticipantPicker } from "@/components/participant-picker";
 import { buttonClass, inputClass, labelClass } from "@/lib/ui";
 import { checkAvailability, createOuting, type ActionState, type AvailabilityPreview } from "@/server/outing-actions";
 
 const initialState: ActionState = {};
 
-const stateLabel = {
-  busy: "忙碌",
-  maybe: "可能有空",
-  free: "空闲",
-} as const;
-
-export function OutingForm({ groupId, defaultDate }: { groupId: string; defaultDate: string }) {
+export function OutingForm({
+  groupId,
+  defaultDate,
+  viewerId,
+  members,
+}: {
+  groupId: string;
+  defaultDate: string;
+  viewerId: string;
+  members: { userId: string; name: string }[];
+}) {
   const [state, action, pending] = useActionState(createOuting, initialState);
   const [startDate, setStartDate] = useState(defaultDate);
   const [startTime, setStartTime] = useState("14:00");
   const [endDate, setEndDate] = useState(defaultDate);
   const [endTime, setEndTime] = useState("17:00");
+  const [selected, setSelected] = useState<string[]>([viewerId]);
   const [preview, setPreview] = useState<AvailabilityPreview | null>(null);
   const [checking, setChecking] = useState(false);
 
@@ -104,48 +110,35 @@ export function OutingForm({ groupId, defaultDate }: { groupId: string; defaultD
           />
         </label>
       </div>
-      <p className="text-sm text-muted">
-        本组能看到标题和地点。你默认参加；改成不参加后，这段时间就不会占用你。其他搭子组只能看到忙碌或可能忙。时间按北京时间。
-      </p>
-      <AvailabilityList checking={checking} invalid={invalid} preview={preview} />
+      <p className="text-sm text-muted">勾选的人算参加，其他搭子组只会看到他们这段时间忙碌。时间按北京时间。</p>
+      <ParticipantPicker
+        people={members.map((member) => ({
+          ...member,
+          state:
+            preview && !("error" in preview)
+              ? preview.people.find((person) => person.userId === member.userId)?.state
+              : undefined,
+        }))}
+        selected={selected}
+        viewerId={viewerId}
+        onToggle={(userId) =>
+          setSelected((current) =>
+            current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId],
+          )
+        }
+      />
+      {selected.length === 0 ? <p className="text-sm text-muted">先勾选一起去的人。</p> : null}
+      {invalid ? <p className="text-sm text-muted">结束时间要晚于开始时间。</p> : null}
+      {checking && !preview ? <p className="text-sm text-muted">正在看大家的空闲…</p> : null}
+      {preview && "error" in preview ? <p className="text-sm text-accent">{preview.error}</p> : null}
       {state.error ? (
         <p role="alert" className="text-sm text-accent">
           {state.error}
         </p>
       ) : null}
-      <button className={buttonClass} type="submit" disabled={pending || invalid}>
+      <button className={buttonClass} type="submit" disabled={pending || invalid || selected.length === 0}>
         {pending ? "创建中…" : "约这个行程"}
       </button>
     </form>
-  );
-}
-
-function AvailabilityList({
-  checking,
-  invalid,
-  preview,
-}: {
-  checking: boolean;
-  invalid: boolean;
-  preview: AvailabilityPreview | null;
-}) {
-  if (invalid) return <p className="text-sm text-muted">结束时间要晚于开始时间。</p>;
-  if (checking && !preview) return <p className="text-sm text-muted">正在看大家的空闲…</p>;
-  if (!preview) return <p className="text-sm text-muted">选择时间后，这里会列出谁有空。</p>;
-  if ("error" in preview) return <p className="text-sm text-accent">{preview.error}</p>;
-  if (preview.people.length === 0) return null;
-
-  return (
-    <div className="rounded-2xl border border-line bg-paper p-3">
-      <p className="text-sm font-medium">这个时段</p>
-      <ul className="mt-2 space-y-1 text-sm">
-        {preview.people.map((person) => (
-          <li key={person.userId} className="flex items-center justify-between gap-3">
-            <span>{person.name}</span>
-            <span className={person.state === "free" ? "text-muted" : "font-medium"}>{stateLabel[person.state]}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }

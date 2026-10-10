@@ -14,6 +14,15 @@ import {
 } from "@/lib/visibility";
 import { currentShanghaiYmd, dayBounds, isMonthKey, monthGrid, monthKeyOf } from "@/lib/time";
 
+export async function listGroupMembers(groupId: string) {
+  return db
+    .select({ userId: membership.userId, name: user.name })
+    .from(membership)
+    .innerJoin(user, eq(user.id, membership.userId))
+    .where(eq(membership.groupId, groupId))
+    .orderBy(asc(membership.createdAt));
+}
+
 export async function getHome(userId: string) {
   const now = new Date();
   const [groups, blocks, upcomingOutings] = await Promise.all([

@@ -13,6 +13,7 @@ import {
   isAllDay,
   monthKeyOf,
   shanghaiWeekdayIndex,
+  shanghaiYmd,
 } from "@/lib/time";
 import { ParticipantPicker } from "@/components/participant-picker";
 import { buttonClass, inputClass, labelClass } from "@/lib/ui";
@@ -113,34 +114,38 @@ export function MonthBoard({
             <div key={label}>{label}</div>
           ))}
         </div>
-        <div className="grid grid-cols-7">
-          {days.map((cell) => (
-            <DayCell
-              key={cell}
-              day={cell}
-              month={month}
-              today={today}
-              members={members}
-              color={color}
-              groupId={groupId}
-              selected={openDay === cell}
-              onOpen={(next) => {
-                setCreating(false);
-                setOpenDay((current) => (current === next ? null : next));
-              }}
-            />
-          ))}
-        </div>
-        {openDay ? (
-          <DayAgenda
-            day={openDay}
-            members={members}
-            viewerId={viewerId}
-            color={color}
-            groupId={groupId}
-            onCreate={() => setCreating(true)}
-          />
-        ) : null}
+        {chunkWeeks(days).map((week) => (
+          <div key={week[0]}>
+            <div className="grid grid-cols-7">
+              {week.map((cell) => (
+                <DayCell
+                  key={cell}
+                  day={cell}
+                  month={month}
+                  today={today}
+                  members={members}
+                  color={color}
+                  groupId={groupId}
+                  selected={openDay === cell}
+                  onOpen={(next) => {
+                    setCreating(false);
+                    setOpenDay((current) => (current === next ? null : next));
+                  }}
+                />
+              ))}
+            </div>
+            {openDay && week.includes(openDay) ? (
+              <DayAgenda
+                day={openDay}
+                members={members}
+                viewerId={viewerId}
+                color={color}
+                groupId={groupId}
+                onCreate={() => setCreating(true)}
+              />
+            ) : null}
+          </div>
+        ))}
       </section>
 
       <dialog
@@ -280,7 +285,7 @@ function DayAgenda({
                         className="mr-2 inline-block size-2 rounded-full align-middle"
                         style={{ backgroundColor: chipColor(entry, groupId, color) }}
                       />
-                      <span className="tabular-nums text-muted">{whenLabel(entry)}</span>
+                      <span className="tabular-nums text-muted">{whenLabel(entry, day)}</span>
                       <span className="ml-2">{entryLabel(entry)}</span>
                       {entry.level === "detail" && entry.place ? <span className="text-muted"> · {entry.place}</span> : null}
                     </li>
@@ -295,6 +300,12 @@ function DayAgenda({
   );
 }
 
+function chunkWeeks(days: string[]): string[][] {
+  const weeks: string[][] = [];
+  for (let index = 0; index < days.length; index += 7) weeks.push(days.slice(index, index + 7));
+  return weeks;
+}
+
 function entriesOnDay(entries: CalendarEntry[], day: string): CalendarEntry[] {
   const bounds = dayBounds(day);
   return entries
@@ -302,11 +313,18 @@ function entriesOnDay(entries: CalendarEntry[], day: string): CalendarEntry[] {
     .sort((a, b) => a.startAt.localeCompare(b.startAt));
 }
 
-function whenLabel(entry: CalendarEntry): string {
+function whenLabel(entry: CalendarEntry, day: string): string {
   const start = new Date(entry.startAt);
   const end = new Date(entry.endAt);
   if (isAllDay(start, end)) return "全天";
-  return `${formatClock(start)}–${formatClock(end)}`;
+  const startDay = shanghaiYmd(start);
+  const endDay = shanghaiYmd(end);
+  if (startDay === day && (endDay === day || (endDay === addDays(day, 1) && formatClock(end) === "00:00"))) {
+    return formatClock(end) === "00:00" ? `${formatClock(start)} 开始` : `${formatClock(start)}–${formatClock(end)}`;
+  }
+  if (startDay === day) return `${formatClock(start)} 开始`;
+  if (endDay === day) return `直到 ${formatClock(end)}`;
+  return "全天";
 }
 
 function SlotForm({

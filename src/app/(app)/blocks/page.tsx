@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 
 import { BlockForm } from "@/components/block-form";
+import { EditBlockForm } from "@/components/edit-block-form";
 import { Loading } from "@/components/loading";
 import { safeNext } from "@/lib/paths";
 import { cardClass } from "@/lib/ui";
-import { currentShanghaiYmd, formatRange } from "@/lib/time";
+import { currentShanghaiYmd, formatClock, formatRange, shanghaiYmd } from "@/lib/time";
 import { deleteBlock } from "@/server/block-actions";
 import { requireUser } from "@/server/guard";
 import { getOwnBlocks } from "@/server/queries";
@@ -39,6 +40,21 @@ async function BlocksContent({ searchParams }: { searchParams: Promise<{ returnT
                 {formatRange(block.startAt, block.endAt)}
                 {block.hideTitle ? " · 其他人只看到忙碌" : " · 同组可见标题"}
               </p>
+              <details className="mt-3">
+                <summary className="cursor-pointer text-sm font-medium text-accent">修改</summary>
+                <div className="mt-3">
+                  <EditBlockForm
+                    id={block.id}
+                    title={block.title}
+                    startDate={shanghaiYmd(block.startAt)}
+                    startTime={formatClock(block.startAt)}
+                    endDate={shanghaiYmd(block.endAt)}
+                    endTime={formatClock(block.endAt)}
+                    hideTitle={block.hideTitle}
+                    returnTo={returnTo}
+                  />
+                </div>
+              </details>
               <form action={deleteBlock} className="mt-3">
                 <input type="hidden" name="id" value={block.id} />
                 <button type="submit" className="text-sm text-muted underline">

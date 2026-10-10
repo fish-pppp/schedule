@@ -127,6 +127,48 @@ export async function setRsvp(formData: FormData) {
   refreshSchedule();
 }
 
+export async function updateOuting(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const outingId = String(formData.get("outingId") ?? "");
+  const rows = await db
+    .select({ groupId: outing.groupId, createdBy: outing.createdBy })
+    .from(outing)
+    .where(eq(outing.id, outingId))
+    .limit(1);
+  const plan = rows[0];
+  if (!plan) return { error: "找不到这个行程" };
+  const access = await requireGroupMember(plan.groupId, user.id);
+  if (!access) return { error: "你不在这个搭子组里" };
+  if (access.role !== "owner" && plan.createdBy !== user.id) return { error: "只有发起人或组长能改这个行程" };
+
+  const title = requiredText(formData.get("title"), "先写行程叫什么", 80, "标题最多 80 个字");
+  if (isTextError(title)) return title;
+  const place = optionalText(formData.get("place"), 120, "地点最多 120 个字");
+  if (place && typeof place !== "string") return place;
+
+  const range = parseRange({
+    startDate: String(formData.get("startDate") ?? ""),
+    startTime: String(formData.get("startTime") ?? ""),
+    endDate: String(formData.get("endDate") ?? ""),
+    endTime: String(formData.get("endTime") ?? ""),
+  });
+  if ("error" in range) return range;
+
+  await db
+    .update(outing)
+    .set({
+      title,
+      place,
+      startAt: range.start,
+      endAt: range.end,
+    })
+    .where(and(eq(outing.id, outingId), eq(outing.groupId, plan.groupId)));
+
+  refreshSchedule();
+  const month = String(formData.get("month") ?? "");
+  redirect(isMonthKey(month) ? `/groups/${plan.groupId}?month=${month}` : `/groups/${plan.groupId}`);
+}
+
 export async function deleteOuting(formData: FormData) {
   const user = await requireUser();
   const outingId = String(formData.get("outingId") ?? "");

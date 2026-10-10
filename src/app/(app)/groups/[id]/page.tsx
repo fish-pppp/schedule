@@ -105,6 +105,7 @@ async function GroupContent({
         members={data.members}
         viewerId={data.viewerId}
         canModerate={data.group.role === "owner"}
+        month={data.month}
       />
     </main>
   );

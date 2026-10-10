@@ -20,7 +20,7 @@ export function ParticipantPicker({
   return (
     <fieldset className="space-y-2">
       <legend className="text-[13px] font-medium text-muted">一起去的人</legend>
-      <p className="text-[13px] text-muted">一组里可以只约其中几个。没勾上的人，这段时间不算被占用。</p>
+      <p className="text-[13px] text-muted">勾上的人会在收件箱里看到邀请。他们同意之后，行程才出现在日历上。</p>
       <ul className="overflow-hidden rounded-2xl bg-card">
         {people.map((person) => {
           const checked = selected.includes(person.userId);

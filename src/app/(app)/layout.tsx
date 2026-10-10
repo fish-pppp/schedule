@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { Loading } from "@/components/loading";
 import { SiteHeader } from "@/components/site-header";
+import { countOpenInvites } from "@/server/queries";
 import { getSession } from "@/server/session";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -19,7 +20,7 @@ async function AuthedShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <SiteHeader name={session.user.name} />
+      <SiteHeader name={session.user.name} invites={await countOpenInvites(session.user.id)} />
       <div className="mx-auto w-full max-w-6xl px-4 py-6">{children}</div>
     </>
   );

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { SignOutButton } from "@/components/sign-out-button";
 
-export function SiteHeader({ name }: { name: string }) {
+export function SiteHeader({ name, invites }: { name: string; invites: number }) {
   return (
     <header className="sticky top-0 z-20 border-b border-line/80 bg-paper/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -10,6 +10,14 @@ export function SiteHeader({ name }: { name: string }) {
           搭子日程
         </Link>
         <nav className="flex flex-wrap items-center gap-1 text-sm" aria-label="主导航">
+          <Link href="/inbox" className="rounded-full px-3 py-1.5 font-medium text-accent">
+            收件箱
+            {invites > 0 ? (
+              <span className="ml-1 inline-grid min-w-5 place-items-center rounded-full bg-accent px-1.5 text-xs text-white">
+                {invites}
+              </span>
+            ) : null}
+          </Link>
           <Link href="/blocks" className="rounded-full px-3 py-1.5 font-medium text-accent">
             添加占用
           </Link>

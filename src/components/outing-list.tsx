@@ -1,5 +1,6 @@
+import { EditOutingForm } from "@/components/edit-outing-form";
 import { deleteOuting, setRsvp } from "@/server/outing-actions";
-import { formatRange } from "@/lib/time";
+import { formatClock, formatRange, isAllDay, shanghaiYmd } from "@/lib/time";
 import { buttonClass, cardClass, secondaryButtonClass } from "@/lib/ui";
 import type { GroupPageOuting } from "@/server/queries";
 
@@ -8,11 +9,13 @@ export function OutingList({
   members,
   viewerId,
   canModerate,
+  month,
 }: {
   outings: GroupPageOuting[];
   members: { userId: string; name: string }[];
   viewerId: string;
   canModerate: boolean;
+  month: string;
 }) {
   return (
     <section className="space-y-3">
@@ -78,12 +81,30 @@ export function OutingList({
                 </button>
               </form>
               {canDelete ? (
-                <form action={deleteOuting} className="mt-3">
-                  <input type="hidden" name="outingId" value={plan.id} />
-                  <button type="submit" className="text-sm text-muted underline">
-                    删除行程
-                  </button>
-                </form>
+                <div className="mt-3 space-y-3">
+                  <details>
+                    <summary className="cursor-pointer text-sm font-medium text-accent">修改行程</summary>
+                    <div className="mt-3">
+                      <EditOutingForm
+                        outingId={plan.id}
+                        month={month}
+                        title={plan.title}
+                        place={plan.place ?? ""}
+                        startDate={shanghaiYmd(plan.startAt)}
+                        startTime={formatClock(plan.startAt)}
+                        endDate={shanghaiYmd(plan.endAt)}
+                        endTime={formatClock(plan.endAt)}
+                        allDay={isAllDay(plan.startAt, plan.endAt)}
+                      />
+                    </div>
+                  </details>
+                  <form action={deleteOuting}>
+                    <input type="hidden" name="outingId" value={plan.id} />
+                    <button type="submit" className="text-sm text-muted underline">
+                      删除行程
+                    </button>
+                  </form>
+                </div>
               ) : null}
             </li>
           );

@@ -24,15 +24,12 @@ async function RegisterContent({ searchParams }: { searchParams: Promise<{ next?
   if (session) redirect(nextPath);
 
   return (
-    <main id="main" className="mx-auto flex min-h-full max-w-md flex-col px-4 py-16">
-      <Link href="/" className="text-sm font-semibold">
+    <main id="main" className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-16">
+      <Link href="/" className="text-[13px] text-muted">
         搭子日程
       </Link>
-      <h1 className="mt-6 text-3xl font-semibold tracking-tight">注册</h1>
-      <p className="mt-2 text-sm leading-6 text-muted">
-        用邮箱建一个账号。邀请链接可以之后发到微信，朋友点开就能加入搭子组。
-      </p>
-      <div className="mt-6">
+      <h1 className="mt-1 text-[34px] font-semibold tracking-tight">注册</h1>
+      <div className="mt-8">
         <AuthForm mode="register" nextPath={nextPath} />
       </div>
     </main>

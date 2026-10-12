@@ -75,7 +75,7 @@ export function AuthForm({ mode, nextPath }: { mode: "login" | "register"; nextP
           {error}
         </p>
       ) : null}
-      <button className={buttonClass} type="submit" disabled={pending}>
+      <button className={`${buttonClass} w-full`} type="submit" disabled={pending}>
         {pending ? "请稍等…" : mode === "login" ? "登录" : "注册"}
       </button>
       <p className="text-sm text-muted">

@@ -43,21 +43,17 @@ export function MonthBoard({
 
   return (
     <div className="space-y-4">
-      <ul className="flex flex-wrap gap-2" aria-label="人物颜色">
+      <ul className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-0.5 text-[13px] text-muted" aria-label="成员">
         {members.map((member) => (
-          <li
-            key={member.userId}
-            className="inline-flex items-center gap-1.5 rounded-full bg-card py-1 pr-2.5 pl-1.5 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-          >
-            <span className="inline-block h-2.5 w-6 rounded-full" style={{ backgroundColor: member.color }} aria-hidden="true" />
-            <span>{member.name}</span>
-            {member.userId === viewerId ? <span className="text-muted">我</span> : null}
+          <li key={member.userId} className="inline-flex shrink-0 items-center gap-1.5">
+            <span className="inline-block size-2 rounded-full" style={{ backgroundColor: member.color }} aria-hidden="true" />
+            <span className="text-ink">{member.name}</span>
+            {member.userId === viewerId ? <span>我</span> : null}
           </li>
         ))}
       </ul>
-      <p className="text-sm text-muted">颜色对应每个人。点某一天，从上到下看这一天的时间。同一时间有多个人时，颜色并排。空心或斜线是可能忙。</p>
 
-      <section className="overflow-hidden rounded-3xl bg-card shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
+      <section className="overflow-hidden rounded-2xl bg-card">
         <h2 className="sr-only">{formatMonthTitle(month)}</h2>
         <div className="grid grid-cols-7 border-b border-line px-1 py-2 text-center text-[11px] font-medium text-muted">
           {WEEKDAYS.map((label) => (
@@ -134,7 +130,7 @@ function DayCell({
   return (
     <button
       type="button"
-      className={`flex min-h-24 flex-col border-b border-r border-line p-1 text-left hover:bg-[#f2f2f7] ${
+      className={`flex min-h-[4.25rem] flex-col border-b border-r border-line/80 p-1 text-left hover:bg-[#f7f7fa] ${
         inMonth ? "" : "bg-[#f6f6f8]"
       }`}
       onClick={() => onOpen(day)}

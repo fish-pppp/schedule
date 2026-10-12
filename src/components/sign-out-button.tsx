@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { authClient } from "@/lib/auth-client";
-import { quietButtonClass } from "@/lib/ui";
 
 export function SignOutButton() {
   const router = useRouter();
@@ -13,7 +12,7 @@ export function SignOutButton() {
   return (
     <button
       type="button"
-      className={quietButtonClass}
+      className="inline-flex h-11 w-full items-center justify-center text-[17px] text-[#ff3b30] disabled:opacity-40"
       disabled={pending}
       onClick={() => {
         setPending(true);
@@ -28,7 +27,7 @@ export function SignOutButton() {
         });
       }}
     >
-      退出
+      {pending ? "退出中…" : "退出登录"}
     </button>
   );
 }

@@ -29,8 +29,7 @@ async function BlocksContent({ searchParams }: { searchParams: Promise<{ returnT
   return (
     <main id="main" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <section className="space-y-3">
-        <h1 className="text-3xl font-semibold tracking-tight">我的占用</h1>
-        <p className="text-sm text-muted">这些安排会挡住你在每个搭子组里的空闲。时间按北京时间。</p>
+        <h1 className="text-[34px] leading-tight font-semibold tracking-tight">我的占用</h1>
         {blocks.length === 0 ? <p className="text-sm text-muted">还没有占用。</p> : null}
         <ul className="space-y-2">
           {blocks.map((block) => (

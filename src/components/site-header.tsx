@@ -1,31 +1,21 @@
 import Link from "next/link";
 
-import { SignOutButton } from "@/components/sign-out-button";
+export function SiteHeader({ name }: { name: string }) {
+  const initial = name.trim().slice(0, 1) || "我";
 
-export function SiteHeader({ name, invites }: { name: string; invites: number }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-line/80 bg-paper/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <Link href="/" className="text-[17px] font-semibold tracking-tight">
+    <header className="sticky top-0 z-20 border-b border-[rgba(60,60,67,0.12)] bg-paper/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-11 max-w-3xl items-center justify-between px-4">
+        <Link href="/" className="text-[15px] font-semibold tracking-tight">
           搭子日程
         </Link>
-        <nav className="flex flex-wrap items-center gap-1 text-sm" aria-label="主导航">
-          <Link href="/inbox" className="rounded-full px-3 py-1.5 font-medium text-accent">
-            收件箱
-            {invites > 0 ? (
-              <span className="ml-1 inline-grid min-w-5 place-items-center rounded-full bg-accent px-1.5 text-xs text-white">
-                {invites}
-              </span>
-            ) : null}
-          </Link>
-          <Link href="/blocks" className="rounded-full px-3 py-1.5 font-medium text-accent">
-            添加占用
-          </Link>
-          <Link href="/account" className="rounded-full px-3 py-1.5 text-ink">
-            {name}
-          </Link>
-          <SignOutButton />
-        </nav>
+        <Link
+          href="/account"
+          aria-label={`账号，${name}`}
+          className="grid size-7 place-items-center rounded-full bg-[#e5e5ea] text-[13px] font-semibold"
+        >
+          {initial}
+        </Link>
       </div>
     </header>
   );

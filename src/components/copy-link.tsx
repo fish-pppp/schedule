@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { secondaryButtonClass } from "@/lib/ui";
+import { quietButtonClass } from "@/lib/ui";
 
 export function CopyLink({ path }: { path: string }) {
   const [copied, setCopied] = useState(false);
@@ -10,7 +10,7 @@ export function CopyLink({ path }: { path: string }) {
   return (
     <button
       type="button"
-      className={secondaryButtonClass}
+      className={quietButtonClass}
       onClick={() => {
         const url = `${window.location.origin}${path}`;
         void navigator.clipboard.writeText(url).then(() => {
@@ -18,7 +18,7 @@ export function CopyLink({ path }: { path: string }) {
         });
       }}
     >
-      {copied ? "已复制" : "复制邀请链接"}
+      {copied ? "已复制" : "邀请"}
     </button>
   );
 }

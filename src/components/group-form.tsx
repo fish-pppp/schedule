@@ -21,7 +21,7 @@ export function GroupForm() {
           {state.error}
         </p>
       ) : null}
-      <button className={buttonClass} type="submit" disabled={pending}>
+      <button className={`${buttonClass} w-full`} type="submit" disabled={pending}>
         {pending ? "创建中…" : "创建搭子组"}
       </button>
     </form>

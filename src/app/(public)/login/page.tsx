@@ -24,15 +24,12 @@ async function LoginContent({ searchParams }: { searchParams: Promise<{ next?: s
   if (session) redirect(nextPath);
 
   return (
-    <main id="main" className="mx-auto flex min-h-full max-w-md flex-col px-4 py-16">
-      <Link href="/" className="text-sm font-semibold">
+    <main id="main" className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6 py-16">
+      <Link href="/" className="text-[13px] text-muted">
         搭子日程
       </Link>
-      <h1 className="mt-6 text-3xl font-semibold tracking-tight">登录</h1>
-      <p className="mt-2 text-sm leading-6 text-muted">
-        和搭子对齐空闲。你在一组里约好的行程，其他组只能看到你忙碌，看不到另一个局的细节。
-      </p>
-      <div className="mt-6">
+      <h1 className="mt-1 text-[34px] font-semibold tracking-tight">登录</h1>
+      <div className="mt-8">
         <AuthForm mode="login" nextPath={nextPath} />
       </div>
     </main>

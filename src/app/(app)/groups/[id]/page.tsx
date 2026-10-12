@@ -58,7 +58,7 @@ async function GroupContent({
   }));
 
   return (
-    <main id="main" className="space-y-5">
+    <main id="main" className="space-y-7">
       <GroupInfo
         name={data.group.name}
         color={data.group.color}
@@ -67,16 +67,16 @@ async function GroupContent({
         blocksHref={`/blocks?returnTo=${encodeURIComponent(`/groups/${id}?month=${data.month}`)}`}
       />
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-end justify-between gap-3 px-1">
         <h2 className="text-[28px] font-semibold tracking-tight">{formatMonthTitle(data.month)}</h2>
-        <div className="flex items-center rounded-full bg-card p-1 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
-          <Link className="grid size-8 place-items-center rounded-full text-lg text-accent" href={`/groups/${id}?month=${addMonths(data.month, -1)}`} aria-label="上个月">
+        <div className="mb-0.5 flex items-center text-accent">
+          <Link className="grid size-8 place-items-center text-[22px] leading-none" href={`/groups/${id}?month=${addMonths(data.month, -1)}`} aria-label="上个月">
             ‹
           </Link>
-          <Link className="px-2 text-sm font-medium text-accent" href={`/groups/${id}`}>
+          <Link className="px-1 text-[15px]" href={`/groups/${id}`}>
             今天
           </Link>
-          <Link className="grid size-8 place-items-center rounded-full text-lg text-accent" href={`/groups/${id}?month=${addMonths(data.month, 1)}`} aria-label="下个月">
+          <Link className="grid size-8 place-items-center text-[22px] leading-none" href={`/groups/${id}?month=${addMonths(data.month, 1)}`} aria-label="下个月">
             ›
           </Link>
         </div>

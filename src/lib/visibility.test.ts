@@ -133,7 +133,7 @@ test("the source group sees the outing, other groups only see busy or maybe", ()
   assert.equal(tentative[0]?.title, null);
 });
 
-test("you still see your own outing details from another group", () => {
+test("your own outing from another group is only busy or maybe", () => {
   const entries = visibleEntries({
     viewerId: friend,
     contextGroupId: groupB,
@@ -145,10 +145,12 @@ test("you still see your own outing details from another group", () => {
     rsvps: [rsvp({ userId: friend, status: "going" })],
   });
 
-  assert.equal(entries[0]?.level, "detail");
-  assert.equal(entries[0]?.title, "周五羽毛球");
-  assert.equal(entries[0]?.place, "市体育馆");
-  assert.equal(entries[0]?.groupId, groupA);
+  assert.equal(entries[0]?.level, "busy");
+  assert.equal(entries[0]?.title, null);
+  assert.equal(entries[0]?.place, null);
+  assert.equal(entries[0]?.groupId, null);
+  assert.equal(JSON.stringify(entries).includes("周五羽毛球"), false);
+  assert.equal(JSON.stringify(entries).includes("市体育馆"), false);
 });
 
 test("declining or having no reply does not occupy you", () => {
@@ -244,6 +246,6 @@ test("your own detailed outing still counts as busy", () => {
     outings: [outing()],
     rsvps: [rsvp({ userId: friend, status: "going" })],
   });
-  assert.equal(entries[0]?.level, "detail");
+  assert.equal(entries[0]?.level, "busy");
   assert.equal(availabilityDuring(entries, slotStart, slotEnd), "busy");
 });

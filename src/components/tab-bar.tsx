@@ -7,7 +7,6 @@ const TABS = [
   { href: "/", label: "日程", match: (path: string) => path === "/" },
   { href: "/groups", label: "搭子组", match: (path: string) => path.startsWith("/groups") },
   { href: "/inbox", label: "收件箱", match: (path: string) => path.startsWith("/inbox") },
-  { href: "/blocks", label: "占用", match: (path: string) => path.startsWith("/blocks") },
 ] as const;
 
 export function TabBar({ invites }: { invites: number }) {
@@ -19,7 +18,7 @@ export function TabBar({ invites }: { invites: number }) {
       style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
       aria-label="主导航"
     >
-      <ul className="mx-auto grid max-w-lg grid-cols-4">
+      <ul className="mx-auto grid max-w-lg grid-cols-3">
         {TABS.map((tab) => {
           const active = tab.match(pathname);
           return (
@@ -80,10 +79,5 @@ function TabIcon({ name }: { name: string }) {
       </svg>
     );
   }
-  return (
-    <svg {...common}>
-      <circle cx="12" cy="12" r="7.4" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M12 8.2V12l2.6 1.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  return null;
 }

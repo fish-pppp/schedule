@@ -52,17 +52,16 @@ export function BlockForm({ returnTo, defaultDate }: { returnTo: string; default
           <input className={inputClass} type="time" name="endTime" required defaultValue="22:00" />
         </label>
       </div>
-      <label className="flex items-start gap-2 text-sm">
-        <input className="mt-1" type="checkbox" name="hideTitle" />
-        <span>只显示忙碌。不勾选的话，你所在的搭子组能看到标题。</span>
+      <label className="flex items-center justify-between rounded-xl bg-[#f2f2f7] px-3 py-3 text-[17px]">
+        <span>只显示忙碌</span>
+        <input className="size-5 accent-[#34c759]" type="checkbox" name="hideTitle" />
       </label>
-      <p className="text-sm text-muted">这段占用会出现在你加入的每个搭子组里。时间按北京时间。</p>
       {state.error ? (
         <p role="alert" className="text-sm text-accent">
           {state.error}
         </p>
       ) : null}
-      <button className={buttonClass} type="submit" disabled={pending}>
+      <button className={`${buttonClass} w-full`} type="submit" disabled={pending}>
         {pending ? "保存中…" : "添加占用"}
       </button>
     </form>

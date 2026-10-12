@@ -64,7 +64,7 @@ async function GroupContent({
         name={data.group.name}
         color={data.group.color}
         inviteCode={data.group.inviteCode}
-        blocksHref={`/blocks?returnTo=${encodeURIComponent(`/groups/${id}?month=${data.month}`)}`}
+        blocksHref={`/blocks/new?returnTo=${encodeURIComponent(`/groups/${id}?month=${data.month}`)}`}
       />
 
       <div className="flex shrink-0 items-end justify-between gap-3 px-1">

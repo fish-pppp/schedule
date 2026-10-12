@@ -117,20 +117,16 @@ export function DayScreen({
       </div>
 
       <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-5">
-        <ul className="flex flex-wrap gap-2" aria-label="人物颜色">
+        <ul className="flex gap-3 overflow-x-auto text-[13px] text-muted" aria-label="成员">
           {members.map((member) => (
-            <li
-              key={member.userId}
-              className="inline-flex items-center gap-1.5 rounded-full bg-card py-1 pr-2.5 pl-1.5 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-            >
-              <span className="inline-block h-2.5 w-6 rounded-full" style={{ backgroundColor: member.color }} aria-hidden="true" />
-              <span>{member.name}</span>
-              {member.userId === viewerId ? <span className="text-muted">我</span> : null}
+            <li key={member.userId} className="inline-flex shrink-0 items-center gap-1.5">
+              <span className="inline-block size-2 rounded-full" style={{ backgroundColor: member.color }} aria-hidden="true" />
+              <span className="text-ink">{member.name}</span>
+              {member.userId === viewerId ? <span>我</span> : null}
             </li>
           ))}
         </ul>
-        <p className="text-sm text-muted">从上到下是 0 点到 24 点。同一时间有多个人时，颜色并排，各占一份。斜线是可能忙。</p>
-        <div className="rounded-2xl bg-card p-3 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+        <div className="rounded-2xl bg-card p-3">
           <div className="flex">
             <div className="relative w-14 shrink-0 text-[11px] tabular-nums text-muted" style={{ height: trackHeight }} aria-hidden="true">
               {HOURS.map((hour) => (

@@ -72,16 +72,16 @@ export function EditBlockForm({
           <input className={inputClass} type="time" name="endTime" required defaultValue={endTime} />
         </label>
       </div>
-      <label className="flex items-start gap-2 text-sm">
-        <input className="mt-1" type="checkbox" name="hideTitle" defaultChecked={hideTitle} />
-        <span>只显示忙碌。不勾选的话，你所在的搭子组能看到标题。</span>
+      <label className="flex items-center justify-between rounded-xl bg-[#f2f2f7] px-3 py-3 text-[17px]">
+        <span>只显示忙碌</span>
+        <input className="size-5 accent-[#34c759]" type="checkbox" name="hideTitle" defaultChecked={hideTitle} />
       </label>
       {state.error ? (
         <p role="alert" className="text-sm text-accent">
           {state.error}
         </p>
       ) : null}
-      <button className={buttonClass} type="submit" disabled={pending}>
+      <button className={`${buttonClass} w-full`} type="submit" disabled={pending}>
         {pending ? "保存中…" : "保存修改"}
       </button>
     </form>

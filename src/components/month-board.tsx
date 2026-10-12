@@ -143,27 +143,31 @@ function DayCell({
       onClick={() => onOpen(day)}
       aria-label={dayLabel(day, marks)}
     >
-      <span className="mb-1 text-center">
+      <span className="mb-0.5 text-center">
         <span
-          className={`inline-grid size-6 place-items-center rounded-full text-[13px] font-medium ${
+          className={`inline-grid size-5 place-items-center rounded-full text-[12px] font-medium ${
             isToday ? "bg-accent text-white" : inMonth ? (sunday ? "text-[#ff3b30]" : "text-ink") : "text-[#c7c7cc]"
           }`}
         >
           {dayNumber}
         </span>
       </span>
-      <span className="flex flex-col gap-0.5">
-        {marks.map((mark) => (
-          <span
-            key={mark.userId}
-            className="month-mark"
-            style={
-              mark.uncertain
-                ? { backgroundColor: "transparent", boxShadow: `inset 0 0 0 2px ${mark.color}` }
-                : { backgroundColor: mark.color }
-            }
-            title={mark.uncertain ? `${mark.name} · 可能忙` : mark.name}
-          />
+      <span className="flex min-h-0 flex-col gap-0.5 overflow-hidden">
+        {marks.slice(0, 3).map((mark) => (
+          <span key={mark.userId} className="flex min-w-0 items-center gap-1 px-0.5" title={mark.title}>
+            <span
+              className="inline-block size-1.5 shrink-0 rounded-full"
+              style={
+                mark.uncertain
+                  ? { backgroundColor: "transparent", boxShadow: `inset 0 0 0 1.5px ${mark.color}` }
+                  : { backgroundColor: mark.color }
+              }
+              aria-hidden="true"
+            />
+            <span className={`truncate text-[10px] leading-none ${inMonth ? "text-ink" : "text-[#c7c7cc]"}`}>
+              {mark.label}
+            </span>
+          </span>
         ))}
       </span>
     </button>
@@ -174,21 +178,31 @@ function marksFor(day: string, members: CalendarMember[]) {
   return members.flatMap((member) => {
     const hits = entriesOnDay(member.entries, day);
     if (hits.length === 0) return [];
+    const uncertain = hits.every((entry) => entry.level === "maybe" || entry.status === "maybe");
+    const titled = hits.find((entry) => entry.title?.trim());
     return [
       {
         userId: member.userId,
         name: member.name,
         color: member.color,
-        uncertain: hits.every((entry) => entry.level === "maybe" || entry.status === "maybe"),
+        uncertain,
+        label: shortLabel(titled?.title, uncertain),
+        title: `${member.name} · ${titled?.title?.trim() || (uncertain ? "可能忙" : "有安排")}`,
       },
     ];
   });
 }
 
-function dayLabel(day: string, marks: { name: string; uncertain: boolean }[]): string {
+function dayLabel(day: string, marks: { name: string; label: string; uncertain: boolean }[]): string {
   const when = formatDay(day);
   if (marks.length === 0) return `${when}，空闲`;
-  return `${when}，${marks.map((mark) => `${mark.name}${mark.uncertain ? "可能忙" : "有安排"}`).join("、")}`;
+  return `${when}，${marks.map((mark) => `${mark.name} ${mark.label}`).join("、")}`;
+}
+
+function shortLabel(title: string | null | undefined, uncertain: boolean): string {
+  const text = title?.trim() || (uncertain ? "可能" : "忙");
+  const chars = Array.from(text);
+  return chars.length > 5 ? `${chars.slice(0, 5).join("")}…` : text;
 }
 
 function chunkWeeks(days: string[]): string[][] {

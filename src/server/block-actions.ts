@@ -78,4 +78,5 @@ export async function deleteBlock(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   await db.delete(personalBlock).where(and(eq(personalBlock.id, id), eq(personalBlock.userId, user.id)));
   refreshSchedule();
+  redirect(safeNext(String(formData.get("returnTo") ?? "/blocks")));
 }

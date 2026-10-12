@@ -1,16 +1,14 @@
+import Link from "next/link";
 import { Suspense } from "react";
 
-import { BlockForm } from "@/components/block-form";
-import { EditBlockForm } from "@/components/edit-block-form";
+import { Chevron } from "@/components/group-rows";
 import { Loading } from "@/components/loading";
 import { safeNext } from "@/lib/paths";
-import { cardClass } from "@/lib/ui";
-import { currentShanghaiYmd, formatClock, formatRange, shanghaiYmd } from "@/lib/time";
-import { deleteBlock } from "@/server/block-actions";
+import { formatRange } from "@/lib/time";
 import { requireUser } from "@/server/guard";
 import { getOwnBlocks } from "@/server/queries";
 
-export const metadata = { title: "添加占用" };
+export const metadata = { title: "占用" };
 
 export default function BlocksPage({ searchParams }: { searchParams: Promise<{ returnTo?: string }> }) {
   return (
@@ -25,51 +23,36 @@ async function BlocksContent({ searchParams }: { searchParams: Promise<{ returnT
   const params = await searchParams;
   const returnTo = safeNext(params.returnTo ?? "/blocks");
   const blocks = await getOwnBlocks(user.id);
+  const addHref = `/blocks/new?returnTo=${encodeURIComponent(returnTo === "/blocks" ? "/blocks" : returnTo)}`;
 
   return (
-    <main id="main" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <section className="space-y-3">
-        <h1 className="text-[34px] leading-tight font-semibold tracking-tight">我的占用</h1>
-        {blocks.length === 0 ? <p className="text-sm text-muted">还没有占用。</p> : null}
-        <ul className="space-y-2">
-          {blocks.map((block) => (
-            <li key={block.id} className={cardClass}>
-              <p className="font-medium">{block.title}</p>
-              <p className="mt-1 text-sm text-muted">
-                {formatRange(block.startAt, block.endAt)}
-                {block.hideTitle ? " · 其他人只看到忙碌" : " · 同组可见标题"}
-              </p>
-              <details className="mt-3">
-                <summary className="cursor-pointer text-sm font-medium text-accent">修改</summary>
-                <div className="mt-3">
-                  <EditBlockForm
-                    id={block.id}
-                    title={block.title}
-                    startDate={shanghaiYmd(block.startAt)}
-                    startTime={formatClock(block.startAt)}
-                    endDate={shanghaiYmd(block.endAt)}
-                    endTime={formatClock(block.endAt)}
-                    hideTitle={block.hideTitle}
-                    returnTo={returnTo}
-                  />
-                </div>
-              </details>
-              <form action={deleteBlock} className="mt-3">
-                <input type="hidden" name="id" value={block.id} />
-                <button type="submit" className="text-sm text-muted underline">
-                  删除
-                </button>
-              </form>
+    <main id="main" className="mx-auto max-w-lg">
+      <div className="mb-5 flex items-end justify-between gap-3 px-1">
+        <h1 className="text-[34px] leading-tight font-semibold tracking-tight">占用</h1>
+        <Link href={addHref} className="mb-1 text-[17px] text-accent">
+          添加
+        </Link>
+      </div>
+      {blocks.length === 0 ? (
+        <p className="px-1 text-[15px] text-muted">还没有占用。</p>
+      ) : (
+        <ul className="inset-group">
+          {blocks.map((block, index) => (
+            <li key={block.id}>
+              <Link href={`/blocks/${block.id}`} className="inset-row">
+                {index > 0 ? <span className="inset-line is-flush" aria-hidden="true" /> : null}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[17px]">{block.title}</span>
+                  <span className="mt-0.5 block truncate text-[13px] text-muted">
+                    {formatRange(block.startAt, block.endAt)} · {block.hideTitle ? "只显示忙碌" : "同组可见标题"}
+                  </span>
+                </span>
+                <Chevron />
+              </Link>
             </li>
           ))}
         </ul>
-      </section>
-      <section className={cardClass}>
-        <h2 className="text-lg font-semibold">添加占用</h2>
-        <div className="mt-4">
-          <BlockForm returnTo={returnTo} defaultDate={currentShanghaiYmd()} />
-        </div>
-      </section>
+      )}
     </main>
   );
 }

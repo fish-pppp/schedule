@@ -1,7 +1,7 @@
 import { ReviseTimeForm } from "@/components/revise-time-form";
 import { acceptInvite, declineInvite, deleteOuting } from "@/server/outing-actions";
 import { formatClock, formatRange, shanghaiYmd } from "@/lib/time";
-import { buttonClass, cardClass, secondaryButtonClass } from "@/lib/ui";
+import { buttonClass, secondaryButtonClass } from "@/lib/ui";
 import type { InboxPlan } from "@/server/queries";
 
 export function InboxList({
@@ -15,107 +15,69 @@ export function InboxList({
   waiting: InboxPlan[];
   viewerId: string;
 }) {
+  const sections = [
+    { key: "received", title: "别人约我", items: received, answer: true, sent: false },
+    { key: "waiting", title: "等别人同意", items: waiting, answer: false, sent: false },
+    { key: "sent", title: "我发出的", items: sent, answer: false, sent: true },
+  ].filter((section) => section.items.length > 0);
+
+  if (sections.length === 0) {
+    return <p className="px-1 text-[15px] text-muted">没有待处理的行程。</p>;
+  }
+
   return (
     <div className="space-y-8">
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">别人约我</h2>
-        {received.length === 0 ? <p className="text-sm text-muted">还没有人约你。</p> : null}
-        <ul className="space-y-3">
-          {received.map((plan) => (
-            <li key={plan.id} className={cardClass}>
-              <PlanBody plan={plan} viewerId={viewerId} />
-              <div className="mt-4 flex flex-wrap gap-2">
-                <form action={acceptInvite}>
-                  <input type="hidden" name="outingId" value={plan.id} />
-                  <button className={buttonClass} type="submit">
-                    同意
-                  </button>
-                </form>
-                <form action={declineInvite}>
-                  <input type="hidden" name="outingId" value={plan.id} />
-                  <button className={secondaryButtonClass} type="submit">
-                    不参加
-                  </button>
-                </form>
-              </div>
-              <details className="mt-3">
-                <summary className="cursor-pointer text-sm font-medium text-accent">修改时间</summary>
-                <ReviseTimeForm outingId={plan.id} {...timeFields(plan)} />
-              </details>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">等别人同意</h2>
-        {waiting.length === 0 ? <p className="text-sm text-muted">没有还在等别人的行程。</p> : null}
-        <ul className="space-y-3">
-          {waiting.map((plan) => (
-            <li key={plan.id} className={cardClass}>
-              <PlanBody plan={plan} viewerId={viewerId} />
-              <details className="mt-3">
-                <summary className="cursor-pointer text-sm font-medium text-accent">修改时间</summary>
-                <ReviseTimeForm outingId={plan.id} {...timeFields(plan)} />
-              </details>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">我发出的</h2>
-        {sent.length === 0 ? <p className="text-sm text-muted">没有还在等同意的行程。</p> : null}
-        <ul className="space-y-3">
-          {sent.map((plan) => (
-            <li key={plan.id} className={cardClass}>
-              <PlanBody plan={plan} viewerId={viewerId} />
-              {plan.myStatus === "invited" ? (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <form action={acceptInvite}>
-                    <input type="hidden" name="outingId" value={plan.id} />
-                    <button className={buttonClass} type="submit">
-                      同意这个时间
-                    </button>
-                  </form>
-                  <form action={declineInvite}>
-                    <input type="hidden" name="outingId" value={plan.id} />
-                    <button className={secondaryButtonClass} type="submit">
-                      不参加
-                    </button>
-                  </form>
-                </div>
-              ) : null}
-              <details className="mt-3">
-                <summary className="cursor-pointer text-sm font-medium text-accent">修改时间</summary>
-                <ReviseTimeForm outingId={plan.id} {...timeFields(plan)} />
-              </details>
-              <form action={deleteOuting} className="mt-3">
-                <input type="hidden" name="outingId" value={plan.id} />
-                <button type="submit" className="text-sm text-muted underline">
-                  撤回邀请
-                </button>
-              </form>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {sections.map((section) => (
+        <section key={section.key}>
+          <h2 className="mb-2 px-4 text-[13px] text-muted">{section.title}</h2>
+          <ul className="inset-group">
+            {section.items.map((plan) => (
+              <li key={plan.id} className="inset-block">
+                <p className="text-[13px] text-muted">
+                  {plan.createdBy === viewerId ? "我发起" : `${plan.creatorName} 约你`} · {plan.groupName}
+                </p>
+                <h3 className="mt-0.5 text-[17px] font-semibold">{plan.title}</h3>
+                <p className="mt-0.5 text-[13px] text-muted">
+                  {formatRange(plan.startAt, plan.endAt)}
+                  {plan.place ? ` · ${plan.place}` : ""}
+                </p>
+                {section.answer || (section.sent && plan.myStatus === "invited") ? (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <form action={acceptInvite}>
+                      <input type="hidden" name="outingId" value={plan.id} />
+                      <button className={`${buttonClass} w-full`} type="submit">
+                        同意
+                      </button>
+                    </form>
+                    <form action={declineInvite}>
+                      <input type="hidden" name="outingId" value={plan.id} />
+                      <button className={`${secondaryButtonClass} w-full`} type="submit">
+                        不去
+                      </button>
+                    </form>
+                  </div>
+                ) : null}
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-[15px] text-accent">更多</summary>
+                  <p className="mt-3 text-[13px] text-muted">{statusLine(plan.people)}</p>
+                  <div className="mt-3">
+                    <ReviseTimeForm outingId={plan.id} {...timeFields(plan)} />
+                  </div>
+                  {section.sent ? (
+                    <form action={deleteOuting} className="mt-3">
+                      <input type="hidden" name="outingId" value={plan.id} />
+                      <button type="submit" className="text-[15px] text-[#ff3b30]">
+                        撤回
+                      </button>
+                    </form>
+                  ) : null}
+                </details>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
-  );
-}
-
-function PlanBody({ plan, viewerId }: { plan: InboxPlan; viewerId: string }) {
-  return (
-    <>
-      <p className="text-[13px] text-muted">
-        {plan.groupName}
-        {plan.createdBy === viewerId ? " · 我发起的" : ` · ${plan.creatorName} 发起`}
-      </p>
-      <h3 className="mt-1 text-base font-semibold">{plan.title}</h3>
-      <p className="mt-1 text-sm">{formatRange(plan.startAt, plan.endAt)}</p>
-      {plan.place ? <p className="text-sm text-muted">{plan.place}</p> : null}
-      <p className="mt-2 text-sm text-muted">{statusLine(plan.people)}</p>
-    </>
   );
 }
 

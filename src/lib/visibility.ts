@@ -52,8 +52,8 @@ function isValidRange(start: Date, end: Date): boolean {
 /**
  * What `viewerId` can see about `subjectUserId` while looking at `contextGroupId`.
  * Personal titles stay visible to every shared group unless the block hides them.
- * An outing keeps its title and place only inside its own group. Every other
- * group, including the person it belongs to, only gets 忙碌 or 可能忙.
+ * An outing keeps its title and place inside its own group, and for the person
+ * it belongs to. Everyone else in another group only gets 忙碌 or 可能忙.
  */
 export function visibleEntries(input: {
   viewerId: string;
@@ -101,7 +101,7 @@ export function visibleEntries(input: {
     const rsvp = rsvpByOuting.get(outing.id);
     if (!rsvp || rsvp.status === "no") continue;
     if (!isValidRange(outing.startAt, outing.endAt)) continue;
-    const showDetail = outing.groupId === input.contextGroupId;
+    const showDetail = isSelf || outing.groupId === input.contextGroupId;
     entries.push({
       id: outing.id,
       userId: input.subjectUserId,

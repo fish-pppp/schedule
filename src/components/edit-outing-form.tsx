@@ -11,6 +11,7 @@ const initialState: ActionState = {};
 export function EditOutingForm({
   outingId,
   month,
+  returnTo,
   title,
   place,
   startDate,
@@ -21,6 +22,7 @@ export function EditOutingForm({
 }: {
   outingId: string;
   month: string;
+  returnTo?: string;
   title: string;
   place: string;
   startDate: string;
@@ -45,6 +47,7 @@ export function EditOutingForm({
     <form action={action} className="space-y-3">
       <input type="hidden" name="outingId" value={outingId} />
       <input type="hidden" name="month" value={month} />
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <input type="hidden" name="startDate" value={startDay} />
       <input type="hidden" name="endDate" value={submittedEndDay} />
       <input type="hidden" name="startTime" value={submittedStart} />

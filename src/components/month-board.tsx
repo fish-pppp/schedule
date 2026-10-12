@@ -41,9 +41,11 @@ export function MonthBoard({
     if (!creating && dialog.open) dialog.close();
   }, [creating]);
 
+  const weeks = chunkWeeks(days);
+
   return (
-    <div className="space-y-4">
-      <ul className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-0.5 text-[13px] text-muted" aria-label="成员">
+    <div className="flex min-h-0 flex-1 flex-col gap-2">
+      <ul className="-mx-1 flex shrink-0 gap-3 overflow-x-auto px-1 text-[13px] text-muted" aria-label="成员">
         {members.map((member) => (
           <li key={member.userId} className="inline-flex shrink-0 items-center gap-1.5">
             <span className="inline-block size-2 rounded-full" style={{ backgroundColor: member.color }} aria-hidden="true" />
@@ -53,30 +55,35 @@ export function MonthBoard({
         ))}
       </ul>
 
-      <section className="overflow-hidden rounded-2xl bg-card">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-card">
         <h2 className="sr-only">{formatMonthTitle(month)}</h2>
-        <div className="grid grid-cols-7 border-b border-line px-1 py-2 text-center text-[11px] font-medium text-muted">
+        <div className="grid shrink-0 grid-cols-7 border-b border-line px-1 py-1 text-center text-[11px] font-medium text-muted">
           {WEEKDAYS.map((label) => (
             <div key={label}>{label}</div>
           ))}
         </div>
-        {chunkWeeks(days).map((week) => (
-          <div key={week[0]} className="grid grid-cols-7">
-            {week.map((cell) => (
-              <DayCell
-                key={cell}
-                day={cell}
-                month={month}
-                today={today}
-                members={members}
-                onOpen={(next) => {
-                  setCreating(false);
-                  setOpenDay(next);
-                }}
-              />
-            ))}
-          </div>
-        ))}
+        <div
+          className="grid min-h-0 flex-1"
+          style={{ gridTemplateRows: `repeat(${Math.max(weeks.length, 1)}, minmax(0, 1fr))` }}
+        >
+          {weeks.map((week) => (
+            <div key={week[0]} className="grid min-h-0 grid-cols-7">
+              {week.map((cell) => (
+                <DayCell
+                  key={cell}
+                  day={cell}
+                  month={month}
+                  today={today}
+                  members={members}
+                  onOpen={(next) => {
+                    setCreating(false);
+                    setOpenDay(next);
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </section>
 
       {openDay ? (
@@ -130,7 +137,7 @@ function DayCell({
   return (
     <button
       type="button"
-      className={`flex min-h-[4.25rem] flex-col border-b border-r border-line/80 p-1 text-left hover:bg-[#f7f7fa] ${
+      className={`flex h-full min-h-0 flex-col overflow-hidden border-b border-r border-line/80 p-0.5 text-left hover:bg-[#f7f7fa] ${
         inMonth ? "" : "bg-[#f6f6f8]"
       }`}
       onClick={() => onOpen(day)}

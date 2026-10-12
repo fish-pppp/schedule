@@ -7,6 +7,7 @@ import { membership, outing, rsvp } from "@/db/schema";
 import { createId } from "@/lib/ids";
 import { isTextError, optionalText, requiredText } from "@/lib/text";
 import { isMonthKey, parseRange } from "@/lib/time";
+import { safeNext } from "@/lib/paths";
 import { requireGroupMember, requireUser } from "@/server/guard";
 import { previewAvailability } from "@/server/queries";
 import { refreshSchedule } from "@/server/refresh";
@@ -167,6 +168,8 @@ export async function updateOuting(_prev: ActionState, formData: FormData): Prom
     .where(and(eq(outing.id, outingId), eq(outing.groupId, plan.groupId)));
 
   refreshSchedule();
+  const back = String(formData.get("returnTo") ?? "");
+  if (back) redirect(safeNext(back));
   const month = String(formData.get("month") ?? "");
   redirect(isMonthKey(month) ? `/groups/${plan.groupId}?month=${month}` : `/groups/${plan.groupId}`);
 }

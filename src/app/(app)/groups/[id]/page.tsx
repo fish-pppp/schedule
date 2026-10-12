@@ -3,9 +3,9 @@ import { Suspense } from "react";
 
 import type { CalendarEntry } from "@/components/day-screen";
 import { GroupInfo } from "@/components/group-info";
+import { Chevron } from "@/components/group-rows";
 import { Loading } from "@/components/loading";
 import { MonthBoard } from "@/components/month-board";
-import { OutingList } from "@/components/outing-list";
 import { memberColor } from "@/lib/colors";
 import { addMonths, currentShanghaiYmd, formatMonthTitle } from "@/lib/time";
 import { requireUser } from "@/server/guard";
@@ -56,19 +56,19 @@ async function GroupContent({
     color: memberColor(index),
     entries: member.entries.map(toCalendarEntry),
   }));
+  const outingsHref = `/groups/${id}/outings?month=${data.month}`;
 
   return (
-    <main id="main" className="space-y-7">
+    <main id="main" className="flex h-[calc(100dvh-11rem)] flex-col gap-3 overflow-hidden">
       <GroupInfo
         name={data.group.name}
         color={data.group.color}
         inviteCode={data.group.inviteCode}
-        members={members}
         blocksHref={`/blocks?returnTo=${encodeURIComponent(`/groups/${id}?month=${data.month}`)}`}
       />
 
-      <div className="flex items-end justify-between gap-3 px-1">
-        <h2 className="text-[28px] font-semibold tracking-tight">{formatMonthTitle(data.month)}</h2>
+      <div className="flex shrink-0 items-end justify-between gap-3 px-1">
+        <h2 className="text-[22px] font-semibold tracking-tight">{formatMonthTitle(data.month)}</h2>
         <div className="mb-0.5 flex items-center text-accent">
           <Link className="grid size-8 place-items-center text-[22px] leading-none" href={`/groups/${id}?month=${addMonths(data.month, -1)}`} aria-label="上个月">
             ‹
@@ -91,13 +91,13 @@ async function GroupContent({
         viewerId={data.viewerId}
       />
 
-      <OutingList
-        outings={data.outings}
-        members={data.members}
-        viewerId={data.viewerId}
-        canModerate={data.group.role === "owner"}
-        month={data.month}
-      />
+      <Link href={outingsHref} className="inset-group inset-row shrink-0">
+        <span className="min-w-0 flex-1 text-[17px]">后续行程</span>
+        {data.outings.length > 0 ? (
+          <span className="text-[15px] text-muted tabular-nums">{data.outings.length}</span>
+        ) : null}
+        <Chevron />
+      </Link>
     </main>
   );
 }

@@ -15,17 +15,18 @@ export function OutingList({
   viewerId,
   canModerate,
   month,
+  returnTo,
 }: {
   outings: GroupPageOuting[];
   members: { userId: string; name: string }[];
   viewerId: string;
   canModerate: boolean;
   month: string;
+  returnTo: string;
 }) {
   return (
-    <section>
-      <h2 className="mb-2 px-4 text-[13px] text-muted">接下来</h2>
-      {outings.length === 0 ? <p className="px-4 text-[15px] text-muted">还没有行程。</p> : null}
+    <>
+      {outings.length === 0 ? <p className="px-1 text-[15px] text-muted">还没有行程。</p> : null}
       {outings.length > 0 ? (
         <ul className="inset-group">
           {outings.map((plan) => {
@@ -72,6 +73,7 @@ export function OutingList({
                         <EditOutingForm
                           outingId={plan.id}
                           month={month}
+                          returnTo={returnTo}
                           title={plan.title}
                           place={plan.place ?? ""}
                           startDate={shanghaiYmd(plan.startAt)}
@@ -95,7 +97,7 @@ export function OutingList({
           })}
         </ul>
       ) : null}
-    </section>
+    </>
   );
 }
 

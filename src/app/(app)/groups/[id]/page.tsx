@@ -61,10 +61,12 @@ async function GroupContent({
   return (
     <main id="main" className="flex h-[calc(100dvh-11rem)] flex-col gap-3 overflow-hidden">
       <GroupInfo
+        groupId={id}
         name={data.group.name}
         color={data.group.color}
         inviteCode={data.group.inviteCode}
         blocksHref={`/blocks/new?returnTo=${encodeURIComponent(`/groups/${id}?month=${data.month}`)}`}
+        sole={data.members.length <= 1}
       />
 
       <div className="flex shrink-0 items-end justify-between gap-3 px-1">

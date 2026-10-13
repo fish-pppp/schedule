@@ -1,12 +1,13 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
-import { buddyGroup, membership } from "@/db/schema";
+import { buddyGroup, membership, outing, rsvp } from "@/db/schema";
 import { groupColor } from "@/lib/colors";
 import { createId, createInviteCode } from "@/lib/ids";
+import { planLeave } from "@/lib/leave-group";
 import { isTextError, requiredText } from "@/lib/text";
 import { findGroupByInvite } from "@/server/queries";
 import { refreshSchedule } from "@/server/refresh";
@@ -91,4 +92,52 @@ export async function joinGroup(_prev: ActionState, formData: FormData): Promise
 
   refreshSchedule();
   redirect(`/groups/${group.id}`);
+}
+
+export async function leaveGroup(formData: FormData) {
+  const user = await requireUser();
+  const groupId = String(formData.get("groupId") ?? "");
+  const access = await db
+    .select({ id: membership.id })
+    .from(membership)
+    .where(and(eq(membership.userId, user.id), eq(membership.groupId, groupId)))
+    .limit(1);
+  if (!access[0]) redirect("/groups");
+
+  await db.transaction(async (tx) => {
+    const members = await tx
+      .select({ userId: membership.userId, role: membership.role })
+      .from(membership)
+      .where(eq(membership.groupId, groupId))
+      .orderBy(asc(membership.createdAt));
+    const plan = planLeave(members, user.id);
+    if (plan.kind === "missing") return;
+    if (plan.kind === "dissolve") {
+      await tx.delete(buddyGroup).where(eq(buddyGroup.id, groupId));
+      return;
+    }
+
+    const outingRows = await tx.select({ id: outing.id }).from(outing).where(eq(outing.groupId, groupId));
+    if (outingRows.length > 0) {
+      await tx.delete(rsvp).where(
+        and(
+          eq(rsvp.userId, user.id),
+          inArray(
+            rsvp.outingId,
+            outingRows.map((row) => row.id),
+          ),
+        ),
+      );
+    }
+    await tx.delete(membership).where(and(eq(membership.groupId, groupId), eq(membership.userId, user.id)));
+    if (plan.nextOwnerId) {
+      await tx
+        .update(membership)
+        .set({ role: "owner" })
+        .where(and(eq(membership.groupId, groupId), eq(membership.userId, plan.nextOwnerId)));
+    }
+  });
+
+  refreshSchedule();
+  redirect("/groups");
 }

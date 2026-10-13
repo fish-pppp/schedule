@@ -431,6 +431,7 @@ export async function getInbox(userId: string): Promise<{ received: InboxPlan[];
       .select(planShape)
       .from(outing)
       .innerJoin(buddyGroup, eq(outing.groupId, buddyGroup.id))
+      .innerJoin(membership, and(eq(membership.groupId, outing.groupId), eq(membership.userId, userId)))
       .where(and(eq(outing.createdBy, userId), gt(outing.endAt, now)))
       .orderBy(asc(outing.startAt))
       .limit(30),

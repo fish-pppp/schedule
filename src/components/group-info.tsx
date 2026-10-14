@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { CopyLink } from "@/components/copy-link";
 import { LeaveGroupButton } from "@/components/leave-group-button";
+import { RenameGroup } from "@/components/rename-group";
 
 export function GroupInfo({
   groupId,
@@ -20,9 +21,8 @@ export function GroupInfo({
 }) {
   return (
     <header className="flex items-center gap-1">
-      <h1 className="flex min-w-0 flex-1 items-center gap-2 text-[22px] leading-none font-semibold tracking-tight">
-        <span className="inline-block size-2.5 shrink-0 rounded-[4px]" style={{ backgroundColor: color }} aria-hidden="true" />
-        <span className="truncate">{name}</span>
+      <h1 className="min-w-0 flex-1">
+        <RenameGroup groupId={groupId} name={name} color={color} />
       </h1>
       <LeaveGroupButton groupId={groupId} name={name} sole={sole} />
       <CopyLink path={`/join/${inviteCode}`} />

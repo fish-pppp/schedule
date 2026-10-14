@@ -11,7 +11,7 @@ import { planLeave } from "@/lib/leave-group";
 import { isTextError, requiredText } from "@/lib/text";
 import { findGroupByInvite } from "@/server/queries";
 import { refreshSchedule } from "@/server/refresh";
-import { requireUser } from "@/server/guard";
+import { requireGroupMember, requireUser } from "@/server/guard";
 
 export type ActionState = { error?: string };
 
@@ -140,4 +140,19 @@ export async function leaveGroup(formData: FormData) {
 
   refreshSchedule();
   redirect("/groups");
+}
+
+export async function renameGroup(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const groupId = String(formData.get("groupId") ?? "");
+  const name = requiredText(formData.get("name"), "先写一个组名", 40, "组名最多 40 个字");
+  if (isTextError(name)) return name;
+
+  const access = await requireGroupMember(groupId, user.id);
+  if (!access) return { error: "你不在这个组里" };
+  if (access.groupName === name) return {};
+
+  await db.update(buddyGroup).set({ name }).where(eq(buddyGroup.id, groupId));
+  refreshSchedule();
+  return {};
 }

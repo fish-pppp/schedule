@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { addDays, addMonths, formatOccupied, isAllDay, mondayOf, monthGrid, parseRange } from "./time.ts";
+import { addDays, addMonths, formatOccupied, formatRange, isAllDay, isWholeDays, mondayOf, monthGrid, parseRange } from "./time.ts";
 
 test("weeks start on Monday in Beijing time", () => {
   assert.equal(mondayOf("2026-10-10"), "2026-10-05");
@@ -47,4 +47,23 @@ test("ranges are read as Beijing time", () => {
     }),
     { error: "结束时间要晚于开始时间" },
   );
+  const span = parseRange({
+    startDate: "2026-10-15",
+    startTime: "19:00",
+    endDate: "2026-10-18",
+    endTime: "12:00",
+  });
+  assert.ok("start" in span);
+  if (!("start" in span)) return;
+  assert.equal(span.start.toISOString(), "2026-10-15T11:00:00.000Z");
+  assert.equal(span.end.toISOString(), "2026-10-18T04:00:00.000Z");
+});
+
+test("whole-day blocks can cover more than one day", () => {
+  const start = new Date("2026-10-15T00:00:00+08:00");
+  const end = new Date("2026-10-18T00:00:00+08:00");
+  assert.equal(isWholeDays(start, end), true);
+  assert.equal(isAllDay(start, end), false);
+  assert.equal(formatRange(start, end), "10月15日 周四 – 10月17日 周六");
+  assert.equal(formatOccupied(start, end), "15日–17日 全天");
 });

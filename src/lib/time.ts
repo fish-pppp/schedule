@@ -84,11 +84,20 @@ export function isAllDay(start: Date, end: Date): boolean {
   return formatClock(start) === "00:00" && formatClock(end) === "00:00" && shanghaiYmd(end) === addDays(startDay, 1);
 }
 
+/** Midnight to a later midnight, covering one or more whole days. */
+export function isWholeDays(start: Date, end: Date): boolean {
+  return formatClock(start) === "00:00" && formatClock(end) === "00:00" && shanghaiYmd(end) > shanghaiYmd(start);
+}
+
 export function formatOccupied(start: Date, end: Date): string {
   const startDay = shanghaiYmd(start);
   const endDay = shanghaiYmd(end);
   const dayNumber = (ymd: string) => `${Number(ymd.slice(8, 10))}日`;
-  if (isAllDay(start, end)) return `${dayNumber(startDay)} 全天`;
+  if (isWholeDays(start, end)) {
+    const last = addDays(endDay, -1);
+    if (last === startDay) return `${dayNumber(startDay)} 全天`;
+    return `${dayNumber(startDay)}–${dayNumber(last)} 全天`;
+  }
   if (startDay === endDay) return `${dayNumber(startDay)} ${formatClock(start)}–${formatClock(end)}`;
   return `${dayNumber(startDay)} ${formatClock(start)}–${dayNumber(endDay)} ${formatClock(end)}`;
 }
@@ -123,7 +132,11 @@ export function formatClock(date: Date): string {
 export function formatRange(start: Date, end: Date): string {
   const startDay = shanghaiYmd(start);
   const endDay = shanghaiYmd(end);
-  if (isAllDay(start, end)) return `${formatDay(startDay)} 全天`;
+  if (isWholeDays(start, end)) {
+    const last = addDays(endDay, -1);
+    if (last === startDay) return `${formatDay(startDay)} 全天`;
+    return `${formatDay(startDay)} – ${formatDay(last)}`;
+  }
   if (startDay === endDay) {
     return `${formatDay(startDay)} ${formatClock(start)}–${formatClock(end)}`;
   }

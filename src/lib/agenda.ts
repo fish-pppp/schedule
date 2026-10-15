@@ -1,4 +1,4 @@
-import { addDays, dayBounds, formatClock, formatDay, isAllDay, shanghaiYmd } from "./time.ts";
+import { addDays, dayBounds, formatClock, formatDay, isWholeDays, shanghaiYmd } from "./time.ts";
 
 export const AGENDA_HORIZON_DAYS = 90;
 
@@ -75,7 +75,7 @@ export function agendaDayTitle(ymd: string, today: string): { title: string; sub
 
 export function formatSlot(start: Date, end: Date, ymd: string): string {
   if (!(start < end)) return "";
-  if (isAllDay(start, end)) return "全天";
+  if (isWholeDays(start, end)) return "全天";
   const startDay = shanghaiYmd(start);
   const lastDay = shanghaiYmd(new Date(end.getTime() - 1));
   if (startDay === lastDay) return `${formatClock(start)}–${formatClock(end)}`;

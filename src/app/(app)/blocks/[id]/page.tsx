@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { EditBlockForm } from "@/components/edit-block-form";
 import { Loading } from "@/components/loading";
-import { formatClock, shanghaiYmd } from "@/lib/time";
+import { addDays, formatClock, isWholeDays, shanghaiYmd } from "@/lib/time";
 import { deleteBlock } from "@/server/block-actions";
 import { requireUser } from "@/server/guard";
 import { getOwnBlocks } from "@/server/queries";
@@ -35,6 +35,8 @@ async function EditBlockContent({ params }: { params: Promise<{ id: string }> })
     );
   }
 
+  const whole = isWholeDays(block.startAt, block.endAt);
+
   return (
     <main id="main" className="mx-auto max-w-lg">
       <Link href="/blocks" className="text-[15px] text-accent">
@@ -47,8 +49,9 @@ async function EditBlockContent({ params }: { params: Promise<{ id: string }> })
           title={block.title}
           startDate={shanghaiYmd(block.startAt)}
           startTime={formatClock(block.startAt)}
-          endDate={shanghaiYmd(block.endAt)}
+          endDate={whole ? addDays(shanghaiYmd(block.endAt), -1) : shanghaiYmd(block.endAt)}
           endTime={formatClock(block.endAt)}
+          wholeDays={whole}
           hideTitle={block.hideTitle}
           returnTo="/blocks"
         />

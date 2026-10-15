@@ -13,7 +13,7 @@ import {
   type VisibleEntry,
 } from "@/lib/visibility";
 import { pendingOutingIds } from "@/lib/invite";
-import { currentShanghaiYmd, dayBounds, isMonthKey, monthGrid, monthKeyOf, addDays } from "@/lib/time";
+import { currentShanghaiYmd, dayBounds, isMonthKey, monthGrid, monthKeyOf, addDays, shanghaiYmd } from "@/lib/time";
 import { buildAgenda, AGENDA_HORIZON_DAYS, type AgendaBlock, type AgendaOuting, type AgendaRsvp } from "@/lib/agenda";
 
 export async function listGroupMembers(groupId: string) {
@@ -556,10 +556,11 @@ export async function listPlanTargets(userId: string) {
   };
 }
 
-export async function getAgenda(userId: string) {
+export async function getAgenda(userId: string, range?: { start: Date; end: Date }) {
   const now = new Date();
   const today = currentShanghaiYmd(now);
-  const until = dayBounds(addDays(today, AGENDA_HORIZON_DAYS)).start;
+  const start = range?.start ?? now;
+  const end = range?.end ?? dayBounds(addDays(today, AGENDA_HORIZON_DAYS)).start;
   const circle = await loadCircle(userId);
   const subjectIds = [...new Set([userId, ...circle.people.map((person) => person.userId)])];
 
@@ -567,7 +568,7 @@ export async function getAgenda(userId: string) {
     db
       .select()
       .from(personalBlock)
-      .where(and(inArray(personalBlock.userId, subjectIds), gt(personalBlock.endAt, now), lt(personalBlock.startAt, until))),
+      .where(and(inArray(personalBlock.userId, subjectIds), gt(personalBlock.endAt, start), lt(personalBlock.startAt, end))),
     db
       .select({
         outingId: outing.id,
@@ -581,7 +582,7 @@ export async function getAgenda(userId: string) {
       })
       .from(rsvp)
       .innerJoin(outing, eq(rsvp.outingId, outing.id))
-      .where(and(inArray(rsvp.userId, subjectIds), gt(outing.endAt, now), lt(outing.startAt, until))),
+      .where(and(inArray(rsvp.userId, subjectIds), gt(outing.endAt, start), lt(outing.startAt, end))),
   ]);
 
   const outingIds = [...new Set(occupied.map((item) => item.outingId))];
@@ -627,6 +628,8 @@ export async function getAgenda(userId: string) {
       viewerId: userId,
       now,
       today,
+      from: range ? shanghaiYmd(range.start) : undefined,
+      until: range ? shanghaiYmd(range.end) : undefined,
       groups: circle.groups,
       people: circle.people,
       blocks: agendaBlocks,

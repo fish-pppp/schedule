@@ -84,11 +84,11 @@ export function formatSlot(start: Date, end: Date, ymd: string): string {
   return "全天";
 }
 
-function coveredDays(start: Date, end: Date, today: string, horizonEnd: string): string[] {
+function coveredDays(start: Date, end: Date, floor: string, horizonEnd: string): string[] {
   if (!(start < end)) return [];
   let day = shanghaiYmd(start);
   const last = shanghaiYmd(new Date(end.getTime() - 1));
-  if (day < today) day = today;
+  if (day < floor) day = floor;
   const days: string[] = [];
   while (day <= last && day < horizonEnd && days.length < AGENDA_HORIZON_DAYS) {
     days.push(day);
@@ -110,9 +110,15 @@ export function buildAgenda(input: {
   blocks: readonly AgendaBlock[];
   outings: readonly AgendaOuting[];
   rsvps: readonly AgendaRsvp[];
+  /** Inclusive first day. Defaults to today, so the list hides earlier days. */
+  from?: string;
+  /** Exclusive last day. Defaults to 90 days after today. */
+  until?: string;
 }): AgendaDay[] {
-  const horizonEnd = addDays(input.today, AGENDA_HORIZON_DAYS);
+  const floor = input.from ?? input.today;
+  const horizonEnd = input.until ?? addDays(input.today, AGENDA_HORIZON_DAYS);
   const until = dayBounds(horizonEnd).start;
+  const notBefore = input.from ? dayBounds(floor).start : input.now;
   const viewerGroups = new Set(input.groups.map((group) => group.id));
   const groupById = new Map(input.groups.map((group) => [group.id, group]));
   const outingById = new Map(input.outings.map((outing) => [outing.id, outing]));
@@ -136,12 +142,12 @@ export function buildAgenda(input: {
     return created;
   };
 
-  const open = (start: Date, end: Date) => start < until && end > input.now;
+  const open = (start: Date, end: Date) => start < until && end > notBefore;
 
   for (const block of input.blocks) {
     if (block.userId !== input.viewerId) continue;
     if (!open(block.startAt, block.endAt)) continue;
-    for (const ymd of coveredDays(block.startAt, block.endAt, input.today, horizonEnd)) {
+    for (const ymd of coveredDays(block.startAt, block.endAt, floor, horizonEnd)) {
       ensure(ymd).mine.push({
         key: `block-${block.id}-${ymd}`,
         title: block.title,
@@ -162,7 +168,7 @@ export function buildAgenda(input: {
     const outing = outingById.get(rsvp.outingId);
     if (!outing || !open(outing.startAt, outing.endAt)) continue;
     const group = groupById.get(outing.groupId);
-    for (const ymd of coveredDays(outing.startAt, outing.endAt, input.today, horizonEnd)) {
+    for (const ymd of coveredDays(outing.startAt, outing.endAt, floor, horizonEnd)) {
       ensure(ymd).mine.push({
         key: `outing-${outing.id}-${ymd}`,
         title: outing.title,
@@ -183,7 +189,7 @@ export function buildAgenda(input: {
     for (const block of input.blocks) {
       if (block.userId !== person.userId || !open(block.startAt, block.endAt)) continue;
       const hidden = block.hideTitle;
-      for (const ymd of coveredDays(block.startAt, block.endAt, input.today, horizonEnd)) {
+      for (const ymd of coveredDays(block.startAt, block.endAt, floor, horizonEnd)) {
         ensure(ymd).others.push({
           key: `${person.userId}-block-${block.id}-${ymd}`,
           name: person.name,
@@ -203,7 +209,7 @@ export function buildAgenda(input: {
       const outing = outingById.get(rsvp.outingId);
       if (!outing || !open(outing.startAt, outing.endAt)) continue;
       const detail = viewerGroups.has(outing.groupId);
-      for (const ymd of coveredDays(outing.startAt, outing.endAt, input.today, horizonEnd)) {
+      for (const ymd of coveredDays(outing.startAt, outing.endAt, floor, horizonEnd)) {
         ensure(ymd).others.push({
           key: `${person.userId}-outing-${outing.id}-${ymd}`,
           name: person.name,

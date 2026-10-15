@@ -172,6 +172,33 @@ test("hides pending invites and people outside every shared group", () => {
   assert.equal(days.length, 0);
 });
 
+test("a calendar window still shows days that already passed", () => {
+  const days = buildAgenda({
+    viewerId: viewer,
+    now,
+    today,
+    from: "2026-10-01",
+    until: "2026-11-01",
+    groups,
+    people,
+    blocks: [
+      {
+        id: "earlier",
+        userId: viewer,
+        title: "已过去",
+        startAt: at("2026-10-02", "09:00"),
+        endAt: at("2026-10-02", "10:00"),
+        hideTitle: false,
+      },
+    ],
+    outings: [],
+    rsvps: [],
+  });
+
+  assert.equal(days[0]?.ymd, "2026-10-02");
+  assert.equal(days[0]?.mine[0]?.title, "已过去");
+});
+
 test("a multi-day outing shows on each remaining day", () => {
   const days = run({
     outings: [

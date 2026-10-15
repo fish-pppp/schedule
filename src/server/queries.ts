@@ -13,7 +13,8 @@ import {
   type VisibleEntry,
 } from "@/lib/visibility";
 import { pendingOutingIds } from "@/lib/invite";
-import { currentShanghaiYmd, dayBounds, isMonthKey, monthGrid, monthKeyOf } from "@/lib/time";
+import { currentShanghaiYmd, dayBounds, isMonthKey, monthGrid, monthKeyOf, addDays } from "@/lib/time";
+import { buildAgenda, AGENDA_HORIZON_DAYS, type AgendaBlock, type AgendaOuting, type AgendaRsvp } from "@/lib/agenda";
 
 export async function listGroupMembers(groupId: string) {
   return db
@@ -503,4 +504,134 @@ export async function findGroupByInvite(code: string) {
     .where(eq(buddyGroup.inviteCode, code))
     .limit(1);
   return rows[0] ?? null;
+}
+
+async function loadCircle(userId: string) {
+  const groups = await db
+    .select({
+      id: buddyGroup.id,
+      name: buddyGroup.name,
+      color: buddyGroup.color,
+    })
+    .from(membership)
+    .innerJoin(buddyGroup, eq(membership.groupId, buddyGroup.id))
+    .where(eq(membership.userId, userId))
+    .orderBy(asc(membership.createdAt));
+
+  const groupIds = groups.map((group) => group.id);
+  const memberRows =
+    groupIds.length === 0
+      ? []
+      : await db
+          .select({
+            userId: membership.userId,
+            name: user.name,
+            groupId: membership.groupId,
+          })
+          .from(membership)
+          .innerJoin(user, eq(user.id, membership.userId))
+          .where(inArray(membership.groupId, groupIds))
+          .orderBy(asc(membership.createdAt));
+
+  const people = new Map<string, { userId: string; name: string; groupIds: string[] }>();
+  for (const row of memberRows) {
+    const existing = people.get(row.userId);
+    if (existing) {
+      if (!existing.groupIds.includes(row.groupId)) existing.groupIds.push(row.groupId);
+      continue;
+    }
+    people.set(row.userId, { userId: row.userId, name: row.name, groupIds: [row.groupId] });
+  }
+
+  return { groups, people: [...people.values()] };
+}
+
+export async function listPlanTargets(userId: string) {
+  const circle = await loadCircle(userId);
+  return {
+    groups: circle.groups,
+    friends: circle.people
+      .filter((person) => person.userId !== userId)
+      .sort((a, b) => a.name.localeCompare(b.name, "zh")),
+  };
+}
+
+export async function getAgenda(userId: string) {
+  const now = new Date();
+  const today = currentShanghaiYmd(now);
+  const until = dayBounds(addDays(today, AGENDA_HORIZON_DAYS)).start;
+  const circle = await loadCircle(userId);
+  const subjectIds = [...new Set([userId, ...circle.people.map((person) => person.userId)])];
+
+  const [blocks, occupied] = await Promise.all([
+    db
+      .select()
+      .from(personalBlock)
+      .where(and(inArray(personalBlock.userId, subjectIds), gt(personalBlock.endAt, now), lt(personalBlock.startAt, until))),
+    db
+      .select({
+        outingId: outing.id,
+        groupId: outing.groupId,
+        title: outing.title,
+        place: outing.place,
+        startAt: outing.startAt,
+        endAt: outing.endAt,
+        userId: rsvp.userId,
+        status: rsvp.status,
+      })
+      .from(rsvp)
+      .innerJoin(outing, eq(rsvp.outingId, outing.id))
+      .where(and(inArray(rsvp.userId, subjectIds), gt(outing.endAt, now), lt(outing.startAt, until))),
+  ]);
+
+  const outingIds = [...new Set(occupied.map((item) => item.outingId))];
+  const inviteRows =
+    outingIds.length === 0
+      ? []
+      : await db
+          .select({ outingId: rsvp.outingId, status: rsvp.status })
+          .from(rsvp)
+          .where(and(inArray(rsvp.outingId, outingIds), eq(rsvp.status, "invited")));
+  const pending = pendingOutingIds(inviteRows);
+
+  const outingMap = new Map<string, AgendaOuting>();
+  const rsvps: AgendaRsvp[] = [];
+  for (const item of occupied) {
+    if (pending.has(item.outingId)) continue;
+    outingMap.set(item.outingId, {
+      id: item.outingId,
+      groupId: item.groupId,
+      title: item.title,
+      place: item.place,
+      startAt: item.startAt,
+      endAt: item.endAt,
+    });
+    rsvps.push({ outingId: item.outingId, userId: item.userId, status: item.status });
+  }
+  for (const row of inviteRows) {
+    rsvps.push({ outingId: row.outingId, userId: "", status: "invited" });
+  }
+
+  const agendaBlocks: AgendaBlock[] = blocks.map((item) => ({
+    id: item.id,
+    userId: item.userId,
+    title: item.title,
+    startAt: item.startAt,
+    endAt: item.endAt,
+    hideTitle: item.hideTitle,
+  }));
+
+  return {
+    today,
+    days: buildAgenda({
+      viewerId: userId,
+      now,
+      today,
+      groups: circle.groups,
+      people: circle.people,
+      blocks: agendaBlocks,
+      outings: [...outingMap.values()],
+      rsvps,
+    }),
+  };
 }

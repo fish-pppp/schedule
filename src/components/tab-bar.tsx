@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/", label: "日程", match: (path: string) => path === "/" },
+  { href: "/", label: "日程", match: (path: string) => path === "/" || path.startsWith("/plan") },
   { href: "/groups", label: "搭子组", match: (path: string) => path.startsWith("/groups") },
   { href: "/inbox", label: "收件箱", match: (path: string) => path.startsWith("/inbox") },
 ] as const;

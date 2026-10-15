@@ -13,18 +13,22 @@ export function OutingForm({
   defaultDate,
   viewerId,
   members,
+  initialSelected,
 }: {
   groupId: string;
   defaultDate: string;
   viewerId: string;
   members: { userId: string; name: string }[];
+  initialSelected?: string[];
 }) {
   const [state, action, pending] = useActionState(createOuting, initialState);
   const [startDate, setStartDate] = useState(defaultDate);
   const [startTime, setStartTime] = useState("14:00");
   const [endDate, setEndDate] = useState(defaultDate);
   const [endTime, setEndTime] = useState("17:00");
-  const [selected, setSelected] = useState<string[]>([viewerId]);
+  const [selected, setSelected] = useState<string[]>(
+    initialSelected && initialSelected.length > 0 ? [...new Set(initialSelected)] : [viewerId],
+  );
   const [preview, setPreview] = useState<AvailabilityPreview | null>(null);
   const [checking, setChecking] = useState(false);
 

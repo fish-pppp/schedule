@@ -4,29 +4,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { friendlyAuthError } from "@/lib/auth-error";
 import { authClient } from "@/lib/auth-client";
 import { buttonClass, inputClass, labelClass } from "@/lib/ui";
 
-function translateAuthError(message: string | undefined): string {
-  const text = message?.toLowerCase() ?? "";
-  if (text.includes("invalid email or password") || text.includes("invalid credentials")) {
-    return "邮箱或密码不对";
-  }
-  if (text.includes("already") || text.includes("exist")) return "这个邮箱已经注册过了";
-  if (text.includes("password")) return "密码至少 8 位";
-  if (text.includes("email")) return "请填写有效的邮箱";
-  return "没有完成，请再试一次";
-}
-
 export function AuthForm({ mode, nextPath }: { mode: "login" | "register"; nextPath: string }) {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const forgotHref = email.trim()
+    ? `/forgot-password?email=${encodeURIComponent(email.trim())}`
+    : "/forgot-password";
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const email = String(form.get("email") ?? "").trim();
+    const submittedEmail = email.trim();
     const password = String(form.get("password") ?? "");
     const name = String(form.get("name") ?? "").trim();
     setError(null);
@@ -34,11 +28,11 @@ export function AuthForm({ mode, nextPath }: { mode: "login" | "register"; nextP
 
     const result =
       mode === "login"
-        ? await authClient.signIn.email({ email, password, callbackURL: nextPath })
-        : await authClient.signUp.email({ email, password, name, callbackURL: nextPath });
+        ? await authClient.signIn.email({ email: submittedEmail, password, callbackURL: nextPath })
+        : await authClient.signUp.email({ email: submittedEmail, password, name, callbackURL: nextPath });
 
     if (result.error) {
-      setError(translateAuthError(result.error.message));
+      setError(friendlyAuthError(result.error.message, "没有完成，请再试一次"));
       setPending(false);
       return;
     }
@@ -57,11 +51,33 @@ export function AuthForm({ mode, nextPath }: { mode: "login" | "register"; nextP
       ) : null}
       <label className="block">
         <span className={labelClass}>邮箱</span>
-        <input className={inputClass} name="email" type="email" required autoComplete="email" />
-      </label>
-      <label className="block">
-        <span className={labelClass}>密码</span>
         <input
+          className={inputClass}
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
+      </label>
+      <div>
+        {mode === "login" ? (
+          <span className="mb-1.5 flex items-baseline justify-between gap-3">
+            <label htmlFor="password" className="text-[13px] text-muted">
+              密码
+            </label>
+            <Link className="text-[13px] font-medium text-ink" href={forgotHref}>
+              忘记密码
+            </Link>
+          </span>
+        ) : (
+          <label htmlFor="password" className={labelClass}>
+            密码
+          </label>
+        )}
+        <input
+          id="password"
           className={inputClass}
           name="password"
           type="password"
@@ -69,7 +85,7 @@ export function AuthForm({ mode, nextPath }: { mode: "login" | "register"; nextP
           minLength={8}
           autoComplete={mode === "login" ? "current-password" : "new-password"}
         />
-      </label>
+      </div>
       {error ? (
         <p role="alert" className="text-sm text-accent">
           {error}

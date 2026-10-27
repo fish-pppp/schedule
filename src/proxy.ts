@@ -1,11 +1,11 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PREFIXES = ["/login", "/register", "/join", "/api/auth"];
+import { isPublicPath } from "@/lib/public-paths";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
+  if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
 

@@ -41,6 +41,8 @@ npm run dev
 
 打开 [http://localhost:3000](http://localhost:3000)。`127.0.0.1:3000` 也可以登录。数据库默认是 `postgres://schedule:schedule@localhost:5432/schedule`。
 
+忘了密码可以在登录页点「忘记密码」。页面会把 6 位验证码发到邮箱，10 分钟内用来设新密码。本地没配发信时，验证码打在运行 `npm run dev` 的终端里。线上要配 `EMAIL_FROM`，再加上 `RESEND_API_KEY` 或 SMTP，见 `.env.example`。
+
 ```bash
 npm test
 ```

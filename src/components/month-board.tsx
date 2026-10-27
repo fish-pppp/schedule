@@ -3,7 +3,9 @@
 import { useActionState, useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { DayScreen, entriesOnDay, type CalendarEntry, type CalendarMember } from "@/components/day-screen";
+import { HolidayLabel, HolidayNote } from "@/components/holiday-mark";
 import { ParticipantPicker } from "@/components/participant-picker";
+import { holidayPhrase, isMarkedRestDay } from "@/lib/holidays";
 import { buttonClass, inputClass, labelClass } from "@/lib/ui";
 import { addDays, formatDay, formatMonthTitle, monthKeyOf, shanghaiWeekdayIndex } from "@/lib/time";
 import { checkAvailability, createOuting, type ActionState, type AvailabilityPreview } from "@/server/outing-actions";
@@ -132,6 +134,7 @@ function DayCell({
   const isToday = day === today;
   const dayNumber = Number(day.slice(8, 10));
   const sunday = shanghaiWeekdayIndex(new Date(`${day}T12:00:00+08:00`)) === 0;
+  const rest = isMarkedRestDay(day, sunday);
   const marks = marksFor(day, members);
 
   return (
@@ -143,14 +146,15 @@ function DayCell({
       onClick={() => onOpen(day)}
       aria-label={dayLabel(day, marks)}
     >
-      <span className="mb-0.5 text-center">
+      <span className="mb-0.5 flex w-full shrink-0 flex-col items-center">
         <span
           className={`inline-grid size-5 place-items-center rounded-full text-[12px] font-medium ${
-            isToday ? "bg-accent text-white" : inMonth ? (sunday ? "text-[#ff3b30]" : "text-ink") : "text-[#c7c7cc]"
+            isToday ? "bg-accent text-white" : inMonth ? (rest ? "text-[#ff3b30]" : "text-ink") : "text-[#c7c7cc]"
           }`}
         >
           {dayNumber}
         </span>
+        <HolidayLabel ymd={day} inMonth={inMonth} />
       </span>
       <span className="flex min-h-0 flex-col gap-0.5 overflow-hidden">
         {marks.slice(0, 3).map((mark) => (
@@ -194,7 +198,8 @@ function marksFor(day: string, members: CalendarMember[]) {
 }
 
 function dayLabel(day: string, marks: { name: string; label: string; uncertain: boolean }[]): string {
-  const when = formatDay(day);
+  const phrase = holidayPhrase(day);
+  const when = phrase ? `${formatDay(day)}，${phrase}` : formatDay(day);
   if (marks.length === 0) return `${when}，空闲`;
   return `${when}，${marks.map((mark) => `${mark.name} ${mark.label}`).join("、")}`;
 }
@@ -275,6 +280,7 @@ function SlotForm({
           <h2 id={titleId} className="text-[22px] font-semibold tracking-tight">
             {heading}
           </h2>
+          <HolidayNote ymd={day} />
           <p className="mt-1 text-sm text-muted">
             {allDay ? "这一整天" : "自己定开始和结束，或改成全天"}。别人要在收件箱里同意，行程才会出现。
           </p>

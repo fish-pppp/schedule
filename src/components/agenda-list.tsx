@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { HolidayNote } from "@/components/holiday-mark";
 import type { AgendaDay } from "@/lib/agenda";
 import { Chevron } from "@/components/group-rows";
 
@@ -14,6 +15,7 @@ export function AgendaList({ days }: { days: AgendaDay[] }) {
                 {day.title}
               </h2>
               {day.subtitle ? <p className="text-[13px] text-muted">{day.subtitle}</p> : null}
+              <HolidayNote ymd={day.ymd} />
             </div>
             <Link href={`/plan?date=${day.ymd}`} className="mb-0.5 shrink-0 text-[17px] text-accent">
               约

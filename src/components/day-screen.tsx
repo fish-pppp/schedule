@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 
+import { HolidayNote } from "@/components/holiday-mark";
 import { buildDayColumns, type DayColumnPerson } from "@/lib/day-columns";
 import { buttonClass, secondaryButtonClass } from "@/lib/ui";
 import { dayBounds, formatDay } from "@/lib/time";
@@ -104,6 +105,7 @@ export function DayScreen({
             <h2 id="day-chart-title" tabIndex={-1} className="text-[28px] font-semibold tracking-tight" style={{ outline: "none" }}>
               {formatDay(day)}
             </h2>
+            <HolidayNote ymd={day} />
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" className={secondaryButtonClass} onClick={onClose}>

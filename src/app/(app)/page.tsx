@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { AgendaList } from "@/components/agenda-list";
 import { AgendaMonth } from "@/components/agenda-month";
+import { HolidayNote } from "@/components/holiday-mark";
 import { Loading } from "@/components/loading";
 import { agendaDayTitle } from "@/lib/agenda";
 import { addMonths, currentShanghaiYmd, dayBounds, formatMonthTitle, isMonthKey, isYmd, monthGrid, monthKeyOf } from "@/lib/time";
@@ -137,6 +138,7 @@ function EmptyDay({ ymd, today }: { ymd: string; today: string }) {
       <div className="mb-2 px-1">
         <h2 className="text-[22px] font-semibold tracking-tight">{heading.title}</h2>
         {heading.subtitle ? <p className="text-[13px] text-muted">{heading.subtitle}</p> : null}
+        <HolidayNote ymd={ymd} />
       </div>
       <p className="px-1 text-[15px] text-muted">
         这天没有安排。{" "}

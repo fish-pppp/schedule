@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { HolidayLabel } from "@/components/holiday-mark";
 import type { AgendaDay } from "@/lib/agenda";
+import { holidayPhrase, isMarkedRestDay } from "@/lib/holidays";
 import { monthKeyOf, shanghaiWeekdayIndex } from "@/lib/time";
 
 const WEEKDAYS = ["一", "二", "三", "四", "五", "六", "日"] as const;
@@ -62,6 +64,7 @@ function DayCell({
 }) {
   const inMonth = monthKeyOf(day) === month;
   const sunday = shanghaiWeekdayIndex(new Date(`${day}T12:00:00+08:00`)) === 0;
+  const rest = isMarkedRestDay(day, sunday);
   const mine = entry?.mine ?? [];
   const others = entry?.others ?? [];
   const lines = [
@@ -82,14 +85,15 @@ function DayCell({
       aria-current={selected ? "date" : undefined}
       aria-label={labelFor(day, mine, others)}
     >
-      <span className="mb-0.5 text-center">
+      <span className="mb-0.5 flex w-full shrink-0 flex-col items-center">
         <span
           className={`inline-grid size-5 place-items-center rounded-full text-[12px] font-medium ${
-            day === today ? "bg-accent text-white" : inMonth ? (sunday ? "text-[#ff3b30]" : "text-ink") : "text-[#c7c7cc]"
+            day === today ? "bg-accent text-white" : inMonth ? (rest ? "text-[#ff3b30]" : "text-ink") : "text-[#c7c7cc]"
           }`}
         >
           {Number(day.slice(8, 10))}
         </span>
+        <HolidayLabel ymd={day} inMonth={inMonth} />
       </span>
       <span className="flex min-h-0 flex-col gap-0.5">
         {shown.map((line) =>
@@ -118,5 +122,7 @@ function labelFor(day: string, mine: AgendaDay["mine"], others: AgendaDay["other
     ...mine.map((item) => item.title),
     ...others.map((item) => `${item.name} ${item.label}`),
   ];
-  return bits.length === 0 ? `${day}，没有安排` : `${day}，${bits.join("、")}`;
+  const phrase = holidayPhrase(day);
+  const when = phrase ? `${day}，${phrase}` : day;
+  return bits.length === 0 ? `${when}，没有安排` : `${when}，${bits.join("、")}`;
 }
